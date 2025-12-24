@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>DISNEY TACTICAL TV</title>
+    <title>TACTICAL TV</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -10,10 +10,9 @@
     <div class="scanline"></div>
     <div class="main-wrapper">
         <header>
-            <h1 style="color: var(--p1-color); margin:0;">> DUAL_LINK_V4: <span class="blink">ONLINE</span></h1>
+            <h1 style="color: var(--p1-color); margin:0;">> DUAL_LINK_V5: <span class="blink">READY</span></h1>
             <div id="timer">00:00</div>
         </header>
-
         <div class="dual-screen">
             <div class="player-section" id="board-JUGADOR-1-parent">
                 <div class="player-header p1-header">JUGADOR 1 [ALPHA]</div>
@@ -24,18 +23,17 @@
                 <div class="grid-terminal" id="board-JUGADOR-2"></div>
             </div>
         </div>
-
         <div id="log-console"></div>
     </div>
-
     <div id="victory-overlay">
-        <h1 class="blink">MISIÓN CUMPLIDA</h1>
+        <h1 class="blink">OBJETIVO LOCALIZADO</h1>
         <h2 id="winner-text"></h2>
-        <p>REINICIEN DESDE EL TERMINAL MÓVIL</p>
+        <p>REINICIE EN TERMINAL MÓVIL</p>
     </div>
 
     <script>
         const socket = io();
+        let timerInterval;
         const personajes = [
             { id: 1, nombre: "MICKEY" }, { id: 2, nombre: "ELSA" }, { id: 3, nombre: "WOODY" }, { id: 4, nombre: "STITCH" },
             { id: 5, nombre: "SIMBA" }, { id: 6, nombre: "MALEFICA" }, { id: 7, nombre: "BUZZ" }, { id: 8, nombre: "MOANA" },
@@ -45,48 +43,41 @@
 
         function initBoards() {
             ['JUGADOR-1', 'JUGADOR-2'].forEach(role => {
-                const board = document.getElementById(`board-${role}`);
-                board.innerHTML = '';
+                const b = document.getElementById(`board-${role}`);
+                b.innerHTML = '';
                 personajes.forEach(p => {
-                    const div = document.createElement('div');
-                    div.className = 'char-card';
-                    div.id = `char-${role}-${p.id}`;
-                    div.innerHTML = `<div class="id-tag">ID_${p.id}</div><div class="img-container"><img src="images/${p.id}.jpg"></div><div class="name">${p.nombre}</div>`;
-                    board.appendChild(div);
+                    const d = document.createElement('div');
+                    d.className = 'char-card'; d.id = `char-${role}-${p.id}`;
+                    d.innerHTML = `<div class="id-tag">REF_${p.id}</div><div class="img-container"><img src="images/${p.id}.jpg"></div><div class="name">${p.nombre}</div>`;
+                    b.appendChild(d);
                 });
             });
         }
 
         socket.emit('register-device', 'tv');
-
         socket.on('start-timer', () => {
-            let sec = 0;
-            setInterval(() => {
-                sec++;
-                let m = Math.floor(sec/60).toString().padStart(2,'0');
-                let s = (sec%60).toString().padStart(2,'0');
-                document.getElementById('timer').textContent = `${m}:${s}`;
+            let s = 0;
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                s++;
+                let min = Math.floor(s/60).toString().padStart(2,'0');
+                let seg = (s%60).toString().padStart(2,'0');
+                document.getElementById('timer').textContent = `${min}:${seg}`;
             }, 1000);
         });
 
-        socket.on('visual-discard', (data) => {
-            const roleId = data.role.replace(' ', '-');
-            const card = document.getElementById(`char-${roleId}-${data.id}`);
-            if(card) card.classList.toggle('eliminated');
-        });
-
-        socket.on('game-over', (data) => {
+        socket.on('game-over', d => {
+            clearInterval(timerInterval); // DETIENE EL TIEMPO
             document.getElementById('victory-overlay').style.display = 'flex';
-            document.getElementById('winner-text').textContent = `${data.player} ENCONTRÓ A ${data.character}`;
+            document.getElementById('winner-text').textContent = `${d.player} GANÓ IDENTIFICANDO A ${d.character}`;
         });
 
-        socket.on('reset-game', () => { location.reload(); });
-        socket.on('update-status', (msg) => {
-            const p = document.createElement('p');
-            p.textContent = `> ${msg}`;
-            document.getElementById('log-console').appendChild(p);
+        socket.on('visual-discard', d => {
+            const c = document.getElementById(`char-${d.role.replace(' ','-')}-${d.id}`);
+            if(c) c.classList.toggle('eliminated');
         });
 
+        socket.on('reset-game', () => location.reload());
         initBoards();
     </script>
 </body>
