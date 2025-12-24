@@ -9,9 +9,10 @@
     <style>
         body { padding: 10px; overflow-y: auto; }
         .mobile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
-        button { background: #000; color: #0f0; border: 1px solid #0f0; padding: 15px 5px; font-family: monospace; }
-        .btn-win { background: #ff3131; color: #000; font-weight: bold; grid-column: span 2; margin-bottom: 10px; }
-        .btn-start { background: #0f0; color: #000; font-weight: bold; grid-column: span 2; margin-bottom: 10px; }
+        button { background: #000; color: #0f0; border: 1px solid #0f0; padding: 15px 5px; font-family: monospace; font-size: 0.75rem; }
+        .btn-win { background: #ff3131; color: #000; font-weight: bold; }
+        .btn-start { background: #0f0; color: #000; font-weight: bold; }
+        .btn-reset { background: #0044ff; color: #fff; font-weight: bold; grid-column: span 2; border: 1px solid #fff; }
         .off { border-color: #400; color: #400; text-decoration: line-through; }
     </style>
 </head>
@@ -19,8 +20,9 @@
     <div id="role-tag" style="background:#0f0; color:#000; text-align:center; padding:5px; font-weight:bold;">CONECTANDO...</div>
     
     <div class="mobile-grid">
-        <button class="btn-start" onclick="socket.emit('start-game')">INICIAR PARTIDA</button>
+        <button class="btn-start" onclick="socket.emit('start-game')">INICIAR REGLOJ</button>
         <button class="btn-win" onclick="win()">¡LO ADIVINÉ!</button>
+        <button class="btn-reset" onclick="socket.emit('request-reset')">NUEVA PARTIDA (RESET)</button>
         </div>
 
     <script>
@@ -42,17 +44,29 @@
         socket.emit('register-device', 'mobile');
         socket.on('assign-role', role => roleTag.textContent = `SESIÓN: ${role}`);
 
-        personajes.forEach(p => {
-            const b = document.createElement('button');
-            b.textContent = p.nombre;
-            b.onclick = () => { b.classList.toggle('off'); socket.emit('discard-character', {id: p.id}); };
-            grid.appendChild(b);
-        });
+        function renderButtons() {
+            // Eliminar botones viejos de personajes si existen
+            document.querySelectorAll('.btn-char').forEach(b => b.remove());
+            personajes.forEach(p => {
+                const b = document.createElement('button');
+                b.textContent = p.nombre;
+                b.className = 'btn-char';
+                b.onclick = () => { b.classList.toggle('off'); socket.emit('discard-character', {id: p.id}); };
+                grid.appendChild(b);
+            });
+        }
 
         function win() {
             const p = prompt("¿Quién es?");
             if(p) socket.emit('declare-winner', { player: roleTag.textContent, character: p.toUpperCase() });
         }
+
+        // REINICIO EN EL MÓVIL
+        socket.on('reset-game', () => {
+            renderButtons();
+        });
+
+        renderButtons();
     </script>
 </body>
 </html>
