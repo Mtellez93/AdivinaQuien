@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TACTICAL MOBILE</title>
+    <title>CONTROL MÓVIL</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
     <style>
@@ -17,78 +17,75 @@
         button { border: 1px solid #444; background: #222; color: #fff; padding: 15px 5px; font-family: inherit; }
         .btn-start { background: #004400; border-color: #0f0; font-weight: bold; }
         .btn-win { background: #440000; border-color: #f00; font-weight: bold; }
-        .btn-reset { grid-column: span 2; background: #1a1a1a; color: #888; margin-top: 10px; }
+        .btn-reset { grid-column: span 2; background: #1a1a1a; color: #888; }
         .grid-chars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-        .char-btn { border: 1px solid #444; padding: 10px 2px; font-size: 0.75rem; }
-        .char-btn.off { opacity: 0.3; background: #000; text-decoration: line-through; color: #f00; }
-        .locked-ui { opacity: 0.2 !important; filter: grayscale(1) !important; pointer-events: none !important; }
+        .char-btn { border: 1px solid #444; padding: 12px 2px; font-size: 0.75rem; text-transform: uppercase; }
+        .char-btn.off { opacity: 0.2; background: #000; text-decoration: line-through; color: #f00; }
+        .locked-ui { opacity: 0.2 !important; pointer-events: none !important; filter: grayscale(1); }
     </style>
 </head>
 <body>
     <div id="role-tag" class="role-banner">CONECTANDO...</div>
     <div id="secret-card-ui" class="secret-card">
         OBJETIVO DEL RIVAL:
-        <span id="secret-target" class="secret-name">BLOQUEADO</span>
+        <span id="secret-target" class="secret-name">SISTEMA BLOQUEADO</span>
     </div>
     <div class="controls">
         <button id="start-btn" class="btn-start" onclick="socket.emit('start-game')">INICIAR PARTIDA</button>
-        <button id="win-btn" class="btn-win locked-ui" onclick="win()">¡ADIVINÉ!</button>
-        <button class="btn-reset" onclick="socket.emit('request-reset')">REINICIAR TODO</button>
+        <button id="win-btn" class="btn-win locked-ui" onclick="win()">¡LO TENGO!</button>
+        <button class="btn-reset" onclick="socket.emit('request-reset')">REINICIAR</button>
     </div>
     <div class="grid-chars locked-ui" id="char-grid"></div>
 
     <script>
         const socket = io();
         let gameStarted = false;
-        const personajes = ["MICKEY", "ELSA", "WOODY", "STITCH", "SIMBA", "MALEFICA", "BUZZ", "MOANA", "GOOFY", "DONALD", "MULAN", "PETER PAN", "RAPUNZEL", "ALADDIN", "OLAF", "CENICIENTA"];
+        let myRole = "";
 
         socket.emit('register-device', 'mobile');
+
         socket.on('assign-role', r => {
+            myRole = r;
             const t = document.getElementById('role-tag');
             t.textContent = `OPERADOR: ${r}`;
             t.className = 'role-banner ' + (r === 'JUGADOR 1' ? 'p1-theme' : 'p2-theme');
         });
 
-        socket.on('secret-character', n => {
+        socket.on('game-setup', data => {
             gameStarted = true;
-            document.getElementById('secret-target').textContent = n;
+            document.getElementById('secret-target').textContent = data.secret;
             document.getElementById('secret-target').style.color = "#00f2ff";
             document.getElementById('char-grid').classList.remove('locked-ui');
             document.getElementById('win-btn').classList.remove('locked-ui');
             document.getElementById('start-btn').classList.add('locked-ui');
-            document.getElementById('start-btn').textContent = "EN CURSO";
+            renderBoard(data.board);
         });
 
-        socket.on('guess-error', m => alert(m));
-
-        socket.on('game-over', d => {
-            gameStarted = false;
-            document.getElementById('char-grid').classList.add('locked-ui');
-            document.getElementById('win-btn').classList.add('locked-ui');
-            alert(`¡SISTEMA DETENIDO! GANADOR: ${d.player}`);
-        });
-
-        function render() {
+        function renderBoard(list) {
             const g = document.getElementById('char-grid');
             g.innerHTML = '';
-            personajes.forEach((p, i) => {
+            list.forEach(p => {
                 const b = document.createElement('button');
-                b.className = 'char-btn'; b.textContent = p;
+                b.className = 'char-btn';
+                b.textContent = p.nombre;
                 b.onclick = () => {
                     if(!gameStarted) return;
                     b.classList.toggle('off');
-                    socket.emit('discard-character', {id: i+1, role: document.getElementById('role-tag').textContent.replace('OPERADOR: ', '')});
+                    socket.emit('discard-character', { id: p.id, role: myRole });
                 };
                 g.appendChild(b);
             });
         }
+
         function win() {
             if(!gameStarted) return;
-            const guess = prompt("¿QUÉ PERSONAJE TIENE TU RIVAL?");
-            if(guess) socket.emit('declare-winner', {player: document.getElementById('role-tag').textContent.replace('OPERADOR: ', ''), character: guess.toUpperCase()});
+            const guess = prompt("¿QUIÉN TIENE EL RIVAL?");
+            if(guess) socket.emit('declare-winner', { player: myRole, character: guess.toUpperCase() });
         }
+
+        socket.on('guess-error', m => alert(m));
+        socket.on('game-over', d => { gameStarted = false; alert("FIN: GANÓ " + d.player); });
         socket.on('reset-game', () => location.reload());
-        render();
     </script>
 </body>
 </html>
