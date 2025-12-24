@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adivina Quien</title>
+    <title>TACTICAL GUESS - TV TERMINAL</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -14,7 +14,7 @@
         <header>
             <div class="brand">
                 <h1 style="color: var(--p1-color); margin:0; font-size: 1.5rem;">
-                    > Adivina Quien <span class="blink"> ¿Puedes?</span>
+                    > SYSTEM_STATUS: <span class="blink">ONLINE</span>
                 </h1>
             </div>
             <div id="timer">00:00</div>
@@ -22,18 +22,16 @@
 
         <div class="dual-screen">
             <div class="player-section" id="board-JUGADOR-1-parent">
-                <div class="player-header p1-header">JUGADOR 1 </div>
-                <div class="grid-terminal" id="board-JUGADOR-1">
-                    </div>
+                <div class="player-header p1-header">JUGADOR 1 [ALPHA]</div>
+                <div class="grid-terminal" id="board-JUGADOR-1"></div>
             </div>
 
             <div class="player-section" id="board-JUGADOR-2-parent">
-                <div class="player-header p2-header">JUGADOR 2 </div>
-                <div class="grid-terminal" id="board-JUGADOR-2">
-                    </div>
+                <div class="player-header p2-header">JUGADOR 2 [BRAVO]</div>
+                <div class="grid-terminal" id="board-JUGADOR-2"></div>
             </div>
         </div>
-        </div>
+    </div>
 
     <div id="victory-overlay">
         <h1 class="blink">OBJETIVO CONFIRMADO</h1>
@@ -45,28 +43,32 @@
         const socket = io();
         let timerInterval;
 
-        // Registrar este dispositivo como la pantalla principal (TV)
         socket.emit('register-device', 'tv');
 
-        // Escuchar cuando el servidor envía los tableros generados
         socket.on('tv-setup', data => {
             renderBoard('JUGADOR-1', data.p1Board);
             renderBoard('JUGADOR-2', data.p2Board);
         });
 
-        // Función para dibujar los personajes en la rejilla
         function renderBoard(role, list) {
             const container = document.getElementById(`board-${role}`);
-            container.innerHTML = ''; // Limpiar tablero anterior
+            container.innerHTML = ''; 
 
             list.forEach(personaje => {
                 const card = document.createElement('div');
                 card.className = 'char-card';
                 card.id = `char-${role}-${personaje.id}`;
 
+                // Limpieza de URL y cache-buster para forzar carga en TV
+                const cleanUrl = personaje.url.trim() + "?v=" + Date.now();
+
                 card.innerHTML = `
                     <div class="img-container">
-                        <img src="${personaje.url}" alt="${personaje.nombre}">
+                        <img src="${cleanUrl}" 
+                             style="opacity:0; transition: opacity 0.5s;" 
+                             onload="this.style.opacity='1'"
+                             onerror="this.src='https://via.placeholder.com/150?text=Error+Link'"
+                             alt="${personaje.nombre}">
                     </div>
                     <div class="name">${personaje.nombre}</div>
                 `;
@@ -74,7 +76,6 @@
             });
         }
 
-        // Iniciar el cronómetro cuando el servidor lo indique
         socket.on('start-timer', () => {
             let seconds = 0;
             clearInterval(timerInterval);
@@ -86,33 +87,22 @@
             }, 1000);
         });
 
-        // Marcar personaje como eliminado (con la X roja)
         socket.on('visual-discard', data => {
-            // Convertimos "JUGADOR 1" a "JUGADOR-1" para que coincida con el ID
             const roleId = data.role.replace(' ', '-');
             const card = document.getElementById(`char-${roleId}-${data.id}`);
-            if (card) {
-                card.classList.toggle('eliminated');
-            }
+            if (card) card.classList.toggle('eliminated');
         });
 
-        // Mostrar pantalla final de victoria
         socket.on('game-over', data => {
             clearInterval(timerInterval);
             const overlay = document.getElementById('victory-overlay');
             const winnerText = document.getElementById('winner-text');
-            
             overlay.style.display = 'flex';
             winnerText.textContent = `${data.player} IDENTIFICÓ A: ${data.character}`;
-            
-            // Cambiar color del texto según el ganador
             winnerText.style.color = (data.player === 'JUGADOR 1') ? 'var(--p1-color)' : 'var(--p2-color)';
         });
 
-        // Reiniciar la página completa para una nueva partida
-        socket.on('reset-game', () => {
-            location.reload();
-        });
+        socket.on('reset-game', () => location.reload());
     </script>
 </body>
 </html>
