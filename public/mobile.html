@@ -3,92 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MOBILE TERMINAL</title>
+    <title>CONTROL TÁCTICO</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { padding: 10px; overflow-y: auto; background: #000; color: #0f0; }
-        .mobile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-        .btn-char { background: #000; color: #0f0; border: 1px solid #0f0; padding: 15px 5px; font-family: monospace; font-size: 0.7rem; }
-        .btn-win { background: #ff3131; color: #000; font-weight: bold; }
-        .btn-start { background: #0f0; color: #000; font-weight: bold; }
-        .btn-reset { background: #0044ff; color: #fff; font-weight: bold; grid-column: span 2; }
-        .secret-box { background: #111; border: 2px dashed #0f0; padding: 10px; text-align: center; margin: 10px 0; font-weight: bold; color: #fff; min-height: 40px;}
-        .off { border-color: #400; color: #400; text-decoration: line-through; opacity: 0.5; }
+        body { padding: 15px; background: #05080a; color: #fff; font-family: 'Courier New', monospace; }
+        .role-banner { text-align: center; padding: 10px; font-weight: bold; border-radius: 4px; margin-bottom: 15px; text-transform: uppercase; }
+        .p1-theme { background: #00f2ff; color: #000; box-shadow: 0 0 10px #00f2ff; }
+        .p2-theme { background: #ffaa00; color: #000; box-shadow: 0 0 10px #ffaa00; }
+        
+        .secret-card { background: #111; border: 2px dashed #444; padding: 15px; text-align: center; margin-bottom: 20px; font-size: 1.2rem; }
+        .secret-name { color: #00f2ff; font-weight: bold; display: block; margin-top: 5px; }
+
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        button { border: 1px solid #444; background: #222; color: #fff; padding: 15px 5px; font-family: inherit; font-size: 0.8rem; cursor: pointer; }
+        
+        .btn-start { background: #008800; border-color: #0f0; font-weight: bold; }
+        .btn-win { background: #880000; border-color: #f00; font-weight: bold; }
+        .btn-reset { grid-column: span 2; background: #333; }
+
+        .grid-chars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .char-btn { border: 1px solid #444; transition: 0.2s; }
+        .char-btn.off { opacity: 0.3; background: #000; text-decoration: line-through; border-color: #f00; color: #f00; }
     </style>
 </head>
 <body>
-    <div id="role-tag" style="background:#0f0; color:#000; text-align:center; padding:5px; font-weight:bold; font-family: monospace;">CONECTANDO...</div>
+    <div id="role-tag" class="role-banner">CONECTANDO...</div>
     
-    <div id="secret-area" class="secret-box">ESPERANDO ASIGNACIÓN...</div>
+    <div class="secret-card">
+        TU OBJETIVO: <span id="secret-target" class="secret-name">???</span>
+    </div>
 
-    <div class="mobile-grid">
+    <div class="controls">
         <button class="btn-start" onclick="socket.emit('start-game')">INICIAR PARTIDA</button>
-        <button class="btn-win" onclick="win()">¡LO ADIVINÉ!</button>
+        <button class="btn-win" onclick="win()">¡ADIVINÉ!</button>
         <button class="btn-reset" onclick="socket.emit('request-reset')">NUEVA PARTIDA</button>
     </div>
+
+    <div class="grid-chars" id="char-grid"></div>
 
     <script>
         const socket = io();
         const roleTag = document.getElementById('role-tag');
-        const secretArea = document.getElementById('secret-area');
-        const grid = document.querySelector('.mobile-grid');
+        const secretTarget = document.getElementById('secret-target');
+        const charGrid = document.getElementById('char-grid');
 
-        const personajes = [
-            { id: 1, nombre: "MICKEY MOUSE" }, { id: 2, nombre: "ELSA" },
-            { id: 3, nombre: "WOODY" }, { id: 4, nombre: "STITCH" },
-            { id: 5, nombre: "SIMBA" }, { id: 6, nombre: "MALEFICA" },
-            { id: 7, nombre: "BUZZ LIGHTYEAR" }, { id: 8, nombre: "MOANA" },
-            { id: 9, nombre: "GOOFY" }, { id: 10, nombre: "DONALD" },
-            { id: 11, nombre: "MULAN" }, { id: 12, nombre: "PETER PAN" },
-            { id: 13, nombre: "RAPUNZEL" }, { id: 14, nombre: "ALADDIN" },
-            { id: 15, nombre: "OLAF" }, { id: 16, nombre: "CENICIENTA" }
-        ];
+        const personajes = ["MICKEY", "ELSA", "WOODY", "STITCH", "SIMBA", "MALEFICA", "BUZZ", "MOANA", "GOOFY", "DONALD", "MULAN", "PETER PAN", "RAPUNZEL", "ALADDIN", "OLAF", "CENICIENTA"];
 
         socket.emit('register-device', 'mobile');
-        
+
         socket.on('assign-role', role => {
-            roleTag.textContent = `SESIÓN: ${role}`;
+            roleTag.textContent = `OPERADOR: ${role}`;
+            roleTag.className = 'role-banner ' + (role === 'JUGADOR 1' ? 'p1-theme' : 'p2-theme');
         });
 
-        socket.on('secret-character', (charName) => {
-            secretArea.textContent = `TU PERSONAJE: ${charName}`;
-            secretArea.style.borderColor = "#0f0";
-            secretArea.style.color = "#0f0";
+        socket.on('secret-character', (name) => {
+            secretTarget.textContent = name;
+            secretTarget.style.color = "#0f0";
         });
 
-        function renderButtons() {
-            document.querySelectorAll('.btn-char').forEach(b => b.remove());
-            personajes.forEach(p => {
+        function render() {
+            charGrid.innerHTML = '';
+            personajes.forEach((p, index) => {
                 const b = document.createElement('button');
-                b.textContent = p.nombre;
-                b.className = 'btn-char';
-                b.onclick = () => { 
-                    b.classList.toggle('off'); 
+                b.className = 'char-btn';
+                b.textContent = p;
+                b.onclick = () => {
+                    b.classList.toggle('off');
                     socket.emit('discard-character', {
-                        id: p.id, 
-                        role: roleTag.textContent.replace('SESIÓN: ', '') 
+                        id: index + 1,
+                        role: roleTag.textContent.replace('OPERADOR: ', '')
                     });
                 };
-                grid.appendChild(b);
+                charGrid.appendChild(b);
             });
         }
 
         function win() {
-            const p = prompt("¿Quién es el personaje oculto?");
-            if(p) socket.emit('declare-winner', { 
-                player: roleTag.textContent.replace('SESIÓN: ', ''), 
-                character: p.toUpperCase() 
-            });
+            const guess = prompt("IDENTIFICA AL OBJETIVO:");
+            if(guess) {
+                socket.emit('declare-winner', {
+                    player: roleTag.textContent.replace('OPERADOR: ', ''),
+                    character: guess.toUpperCase()
+                });
+            }
         }
 
         socket.on('reset-game', () => {
-            secretArea.textContent = "ESPERANDO ASIGNACIÓN...";
-            secretArea.style.color = "#fff";
-            renderButtons();
+            secretTarget.textContent = "???";
+            secretTarget.style.color = "#00f2ff";
+            render();
         });
 
-        renderButtons();
+        render();
     </script>
 </body>
 </html>
