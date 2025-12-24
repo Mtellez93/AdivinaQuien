@@ -1,7 +1,7 @@
 /* --- CONFIGURACIÓN DE COLORES Y BASE --- */
 :root { 
-    --p1-color: #00f2ff; /* Cian para Jugador 1 */
-    --p2-color: #ffaa00; /* Ámbar para Jugador 2 */
+    --p1-color: #00f2ff; 
+    --p2-color: #ffaa00; 
     --red: #ff3131; 
     --bg: #05080a; 
 }
@@ -13,15 +13,17 @@ body {
     margin: 0; 
     padding: 0;
     overflow: hidden; 
-    text-shadow: 0 0 5px rgba(255,255,255,0.1);
+    height: 100vh; /* Obliga a que el cuerpo no crezca más de la pantalla */
 }
 
+/* CONTENEDOR PRINCIPAL CON GRID DINÁMICO */
 .main-wrapper { 
-    display: flex; 
-    flex-direction: column; 
+    display: grid;
+    grid-template-rows: auto 1fr auto; /* Header arriba, Tablero en medio, Console abajo */
     height: 100vh; 
-    padding: 15px; 
+    padding: 10px; 
     box-sizing: border-box;
+    gap: 10px;
 }
 
 header { 
@@ -29,17 +31,15 @@ header {
     justify-content: space-between;
     align-items: center;
     border-bottom: 2px solid #333; 
-    padding-bottom: 10px; 
-    margin-bottom: 15px; 
+    padding-bottom: 5px; 
 }
 
 #timer { 
-    font-size: 2.2rem; 
+    font-size: 1.8rem; 
     color: var(--red); 
     font-weight: bold;
-    letter-spacing: 3px;
     background: rgba(255,0,0,0.1);
-    padding: 5px 20px;
+    padding: 2px 15px;
     border: 1px solid var(--red);
     border-radius: 4px;
 }
@@ -47,9 +47,8 @@ header {
 /* --- DISEÑO DE PANTALLA DUAL --- */
 .dual-screen { 
     display: flex; 
-    flex-grow: 1; 
-    gap: 20px; 
-    overflow: hidden; 
+    gap: 15px; 
+    overflow: hidden; /* Evita que el contenido se salga del área central */
 }
 
 .player-section { 
@@ -59,55 +58,47 @@ header {
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.02);
     overflow: hidden;
-    transition: all 0.5s ease;
 }
 
-#board-JUGADOR-1-parent { border: 2px solid var(--p1-color); box-shadow: 0 0 15px rgba(0,242,255,0.1); }
-#board-JUGADOR-2-parent { border: 2px solid var(--p2-color); box-shadow: 0 0 15px rgba(255,170,0,0.1); }
+#board-JUGADOR-1-parent { border: 2px solid var(--p1-color); }
+#board-JUGADOR-2-parent { border: 2px solid var(--p2-color); }
 
 .player-header { 
     text-align: center; 
     font-weight: bold; 
-    padding: 10px; 
-    font-size: 1.2rem; 
-    letter-spacing: 3px;
+    padding: 6px; 
+    font-size: 1rem; 
     text-transform: uppercase;
 }
 
 .p1-header { background: var(--p1-color); color: #000; }
 .p2-header { background: var(--p2-color); color: #000; }
 
-/* --- REJILLA Y TARJETAS (SIN REF_) --- */
+/* --- REJILLA AJUSTADA PARA TV --- */
 .grid-terminal { 
     display: grid; 
     grid-template-columns: repeat(4, 1fr); 
-    gap: 10px; 
-    padding: 15px; 
-    overflow-y: auto; 
+    gap: 8px; 
+    padding: 10px; 
+    overflow: hidden; /* La TV no necesita scroll si el grid cabe bien */
+    height: 100%;
 }
 
 .char-card { 
     background: rgba(0, 0, 0, 0.7); 
     border: 1px solid rgba(255,255,255,0.1);
-    padding: 10px; 
-    text-align: center; 
+    padding: 5px; 
     display: flex; 
     flex-direction: column; 
     align-items: center;
-    justify-content: center;
-    min-height: 130px; /* Espacio extra para la imagen */
-    transition: all 0.3s ease;
-    position: relative;
+    justify-content: space-between;
+    height: 100%; /* Se estira para llenar el hueco del grid */
+    box-sizing: border-box;
 }
 
-#board-JUGADOR-1 .char-card { border-color: rgba(0,242,255,0.2); }
-#board-JUGADOR-2 .char-card { border-color: rgba(255,170,0,0.2); }
-
-/* CONTENEDOR DE IMAGEN MAXIMIZADO */
 .img-container {
     width: 100%;
-    height: 100px; /* Aumentado para mejor visibilidad */
-    margin-bottom: 8px;
+    height: 75%; /* Ajuste proporcional para dar espacio al nombre */
     background: #000;
     border-radius: 4px;
     display: flex;
@@ -117,47 +108,29 @@ header {
 }
 
 .img-container img {
-    max-width: 100%;
-    max-height: 100%;
+    max-width: 95%;
+    max-height: 95%;
     object-fit: contain;
-    filter: brightness(1.1) contrast(1.1);
 }
 
 .name { 
-    font-size: 0.8rem; 
+    font-size: 0.7rem; /* Reducido un poco para TV */
     font-weight: bold; 
     color: #fff;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    margin: 0;
+    margin-top: 4px;
+    white-space: nowrap; /* Evita que el nombre salte de línea */
 }
 
-/* --- ESTADO ELIMINADO --- */
-.char-card.eliminated { 
-    border-color: var(--red) !important; 
-    opacity: 0.15; 
-    filter: grayscale(1) blur(1px);
-    transform: scale(0.92);
-}
-
-.char-card.eliminated::after {
-    content: "X";
-    position: absolute;
-    font-size: 4rem;
-    color: var(--red);
-    font-weight: bold;
-    opacity: 0.5;
-}
-
-/* --- CONSOLA Y LOGS --- */
+/* --- CONSOLA REDUCIDA --- */
 #log-console { 
-    height: 70px; 
+    height: 40px; /* Reducido de 70px a 40px */
     border-top: 1px solid #333; 
-    padding: 10px; 
-    overflow-y: auto; 
-    font-size: 0.8rem; 
-    background: rgba(0,0,0,0.5); 
+    padding: 5px 10px; 
+    font-size: 0.7rem; 
+    background: rgba(0,0,0,0.8); 
     color: #666;
+    overflow: hidden;
 }
 
 /* --- PANTALLA DE VICTORIA --- */
@@ -170,22 +143,17 @@ header {
     flex-direction: column; 
     justify-content: center; 
     align-items: center; 
-    text-align: center;
 }
 
-#victory-overlay h1 { font-size: 5rem; color: var(--p1-color); margin: 0; }
-#victory-overlay h2 { font-size: 2rem; border: 2px solid #fff; padding: 15px 40px; margin: 20px 0; }
-
-/* --- EFECTOS VISUALES --- */
+/* ... (resto de efectos visuales igual) ... */
 .blink { animation: b 1.5s infinite; }
 @keyframes b { 50% { opacity: 0; } }
 
 .scanline { 
     position: fixed; 
     top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
-                linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
     z-index: 2000;
-    background-size: 100% 3px, 2px 100%;
+    background-size: 100% 3px;
     pointer-events: none;
 }
