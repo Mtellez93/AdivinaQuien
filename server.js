@@ -14,7 +14,7 @@ let players = {};
 let currentMatch = { "JUGADOR 1": "", "JUGADOR 2": "" };
 
 // URL de Google Sheets en formato CSV
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/1jP73m0cs5RuxM_jNjsDH_tiwpdIH5zc6fM416NOIdHw/gviz/tq?tqx=out:csv";
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1jP73m0cs5RuxM_jNjsDH_tiwpdIH5zc6fM416NOIdHw/export?format=csv";
 
 async function getCharactersFromSheet() {
     try {
