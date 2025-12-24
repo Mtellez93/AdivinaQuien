@@ -1,4 +1,4 @@
-/* --- CONFIGURACIÓN DE COLORES Y BASE --- */
+/* --- CONFIGURACIÓN BASE --- */
 :root { 
     --p1-color: #00f2ff; 
     --p2-color: #ffaa00; 
@@ -16,10 +16,9 @@ body {
     height: 100vh;
 }
 
-/* CONTENEDOR PRINCIPAL: AHORA SOLO HEADER Y TABLERO */
 .main-wrapper { 
     display: grid;
-    grid-template-rows: auto 1fr; /* Eliminada la fila de la consola */
+    grid-template-rows: auto 1fr;
     height: 100vh; 
     padding: 15px; 
     box-sizing: border-box;
@@ -42,10 +41,9 @@ header {
     padding: 5px 20px;
     border: 1px solid var(--red);
     border-radius: 4px;
-    text-shadow: 0 0 10px rgba(255,0,0,0.5);
 }
 
-/* --- DISEÑO DE PANTALLA DUAL --- */
+/* --- TABLEROS --- */
 .dual-screen { 
     display: flex; 
     gap: 20px; 
@@ -70,17 +68,16 @@ header {
     padding: 10px; 
     font-size: 1.2rem; 
     text-transform: uppercase;
-    letter-spacing: 2px;
 }
 
 .p1-header { background: var(--p1-color); color: #000; }
 .p2-header { background: var(--p2-color); color: #000; }
 
-/* --- REJILLA DE PERSONAJES (MAXIMIZADA) --- */
+/* --- GRID Y TARJETAS --- */
 .grid-terminal { 
     display: grid; 
     grid-template-columns: repeat(4, 1fr); 
-    grid-template-rows: repeat(4, 1fr); /* Fuerza 4 filas iguales */
+    grid-template-rows: repeat(4, 1fr); 
     gap: 12px; 
     padding: 15px; 
     height: 100%;
@@ -99,12 +96,11 @@ header {
     position: relative;
     box-sizing: border-box;
     border-radius: 6px;
-    transition: all 0.3s ease;
 }
 
 .img-container {
     width: 100%;
-    height: 80%; /* Imagen más grande */
+    height: 80%;
     background: #000;
     border-radius: 4px;
     display: flex;
@@ -117,10 +113,12 @@ header {
     max-width: 95%;
     max-height: 95%;
     object-fit: contain;
+    /* Mejora renderizado en Smart TV */
+    image-rendering: -webkit-optimize-contrast;
 }
 
 .name { 
-    font-size: 0.8rem; /* Letra un poco más legible */
+    font-size: 0.8rem; 
     font-weight: bold; 
     color: #fff;
     text-transform: uppercase;
@@ -130,9 +128,8 @@ header {
     white-space: nowrap;
 }
 
-/* --- ESTADO ELIMINADO --- */
+/* --- ESTADOS --- */
 .char-card.eliminated { 
-    border-color: var(--red) !important; 
     opacity: 0.1; 
     filter: grayscale(1);
     transform: scale(0.9);
@@ -141,16 +138,14 @@ header {
 .char-card.eliminated::after {
     content: "X";
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
     font-size: 5rem;
     color: var(--red);
     font-weight: bold;
-    opacity: 0.4;
+    opacity: 0.5;
 }
 
-/* --- PANTALLA DE VICTORIA --- */
 #victory-overlay { 
     display: none; 
     position: fixed; 
@@ -162,17 +157,16 @@ header {
     align-items: center; 
 }
 
-#victory-overlay h1 { font-size: 5rem; color: var(--p1-color); margin: 0; text-shadow: 0 0 30px var(--p1-color); }
+#victory-overlay h1 { font-size: 5rem; color: var(--p1-color); margin: 0; }
 #victory-overlay h2 { font-size: 2.2rem; border: 3px solid #fff; padding: 15px 40px; margin: 30px 0; }
 
-/* --- EFECTOS VISUALES --- */
 .blink { animation: b 1.5s infinite; }
 @keyframes b { 50% { opacity: 0; } }
 
 .scanline { 
     position: fixed; 
     top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+    background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.1) 50%);
     z-index: 6000;
     background-size: 100% 3px;
     pointer-events: none;
