@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>DISNEY SERVER TERMINAL</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="terminal-body">
+    <div class="scanline"></div>
+    <div class="container">
+        <header>
+            <h1>> SYSTEM STATUS: <span class="blink">ONLINE</span></h1>
+            <p>CENTRAL DATABASE: DISNEY_CHARACTERS_V2.0</p>
+            <hr>
+        </header>
+
+        <div id="log-console">
+            <p>> ESPERANDO CONEXIÓN DE CLIENTES...</p>
+        </div>
+
+        <div class="grid-terminal" id="board">
+            </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const log = document.getElementById('log-console');
+
+        // Registrar este dispositivo como la TV
+        socket.emit('register-device', 'tv');
+
+        socket.on('update-status', (msg) => {
+            const p = document.createElement('p');
+            p.textContent = `> ${msg}`;
+            log.appendChild(p);
+            // Auto-scroll al final
+            log.scrollTop = log.scrollHeight;
+        });
+
+        // Aquí recibiremos qué personaje eliminar
+        socket.on('visual-discard', (data) => {
+            const card = document.getElementById(`char-${data.id}`);
+            if(card) card.classList.add('eliminated');
+        });
+    </script>
+</body>
+</html>
