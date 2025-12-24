@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TERMINAL CLIENTE</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="mobile-body">
+    <div id="setup">
+        <h2>IDENTIFICACIÓN REQUERIDA</h2>
+        <button onclick="joinGame()">CONECTAR AL SISTEMA</button>
+    </div>
+
+    <div id="game-controls" style="display:none;">
+        <h3 id="player-id">CARGANDO...</h3>
+        <p>SELECCIONA PARA DESCARTAR EN TV:</p>
+        <div id="mobile-grid">
+            <button onclick="discard(1)">MICKEY</button>
+            <button onclick="discard(2)">ELSA</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        function joinGame() {
+            socket.emit('register-device', 'mobile');
+            document.getElementById('setup').style.display = 'none';
+            document.getElementById('game-controls').style.display = 'block';
+        }
+
+        socket.on('assign-role', (role) => {
+            document.getElementById('player-id').textContent = `ROL: ${role}`;
+        });
+
+        function discard(charId) {
+            socket.emit('discard-character', { id: charId });
+        }
+    </script>
+</body>
+</html>
