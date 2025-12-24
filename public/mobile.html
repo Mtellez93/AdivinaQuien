@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TERMINAL CLIENTE</title>
+    <title>MOBILE TERMINAL</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { padding: 10px; overflow-y: auto; }
+        body { padding: 10px; overflow-y: auto; background: #000; color: #0f0; }
         .mobile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-        button { background: #000; color: #0f0; border: 1px solid #0f0; padding: 15px 5px; font-family: monospace; font-size: 0.7rem; }
+        .btn-char { background: #000; color: #0f0; border: 1px solid #0f0; padding: 15px 5px; font-family: monospace; font-size: 0.7rem; }
         .btn-win { background: #ff3131; color: #000; font-weight: bold; }
         .btn-start { background: #0f0; color: #000; font-weight: bold; }
         .btn-reset { background: #0044ff; color: #fff; font-weight: bold; grid-column: span 2; }
-        .secret-box { background: #222; border: 2px dashed #0f0; padding: 10px; text-align: center; margin: 10px 0; font-weight: bold; color: #fff; }
-        .off { border-color: #400; color: #400; text-decoration: line-through; }
+        .secret-box { background: #111; border: 2px dashed #0f0; padding: 10px; text-align: center; margin: 10px 0; font-weight: bold; color: #fff; min-height: 40px;}
+        .off { border-color: #400; color: #400; text-decoration: line-through; opacity: 0.5; }
     </style>
 </head>
 <body>
-    <div id="role-tag" style="background:#0f0; color:#000; text-align:center; padding:5px; font-weight:bold;">CONECTANDO...</div>
+    <div id="role-tag" style="background:#0f0; color:#000; text-align:center; padding:5px; font-weight:bold; font-family: monospace;">CONECTANDO...</div>
     
-    <div id="secret-area" class="secret-box">TU PERSONAJE: ??? (DALE A INICIAR)</div>
+    <div id="secret-area" class="secret-box">ESPERANDO ASIGNACIÓN...</div>
 
     <div class="mobile-grid">
         <button class="btn-start" onclick="socket.emit('start-game')">INICIAR PARTIDA</button>
@@ -46,11 +46,13 @@
         ];
 
         socket.emit('register-device', 'mobile');
-        socket.on('assign-role', role => roleTag.textContent = `SESIÓN: ${role}`);
+        
+        socket.on('assign-role', role => {
+            roleTag.textContent = `SESIÓN: ${role}`;
+        });
 
-        // Recibir personaje secreto
         socket.on('secret-character', (charName) => {
-            secretArea.textContent = `ERES: ${charName}`;
+            secretArea.textContent = `TU PERSONAJE: ${charName}`;
             secretArea.style.borderColor = "#0f0";
             secretArea.style.color = "#0f0";
         });
@@ -61,18 +63,27 @@
                 const b = document.createElement('button');
                 b.textContent = p.nombre;
                 b.className = 'btn-char';
-                b.onclick = () => { b.classList.toggle('off'); socket.emit('discard-character', {id: p.id}); };
+                b.onclick = () => { 
+                    b.classList.toggle('off'); 
+                    socket.emit('discard-character', {
+                        id: p.id, 
+                        role: roleTag.textContent.replace('SESIÓN: ', '') 
+                    });
+                };
                 grid.appendChild(b);
             });
         }
 
         function win() {
-            const p = prompt("¿Quién es el personaje de tu oponente?");
-            if(p) socket.emit('declare-winner', { player: roleTag.textContent, character: p.toUpperCase() });
+            const p = prompt("¿Quién es el personaje oculto?");
+            if(p) socket.emit('declare-winner', { 
+                player: roleTag.textContent.replace('SESIÓN: ', ''), 
+                character: p.toUpperCase() 
+            });
         }
 
         socket.on('reset-game', () => {
-            secretArea.textContent = "TU PERSONAJE: ??? (DALE A INICIAR)";
+            secretArea.textContent = "ESPERANDO ASIGNACIÓN...";
             secretArea.style.color = "#fff";
             renderButtons();
         });
