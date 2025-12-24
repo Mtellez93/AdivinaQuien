@@ -2,19 +2,15 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>DISNEY TACTICAL TERMINAL v3.0</title>
+    <title>DISNEY TACTICAL TV</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body class="terminal-body">
     <div class="scanline"></div>
-    
     <div class="main-wrapper">
         <header>
-            <div style="display: flex; flex-direction: column;">
-                <h1 style="margin:0; font-size: 1.2rem; color: var(--p1-color);">> DISNEY_CORE_LINK: <span class="blink">ESTABLISHED</span></h1>
-                <small style="color: #666;">SECURE ENCRYPTION: AES-256</small>
-            </div>
+            <h1 style="color: var(--p1-color); margin:0;">> DUAL_LINK_V4: <span class="blink">ONLINE</span></h1>
             <div id="timer">00:00</div>
         </header>
 
@@ -23,54 +19,30 @@
                 <div class="player-header p1-header">JUGADOR 1 [ALPHA]</div>
                 <div class="grid-terminal" id="board-JUGADOR-1"></div>
             </div>
-            
             <div class="player-section" id="board-JUGADOR-2-parent">
                 <div class="player-header p2-header">JUGADOR 2 [BRAVO]</div>
                 <div class="grid-terminal" id="board-JUGADOR-2"></div>
             </div>
         </div>
 
-        <div id="log-console">
-            <p>> INICIALIZANDO INTERFAZ DE RASTREO...</p>
-        </div>
+        <div id="log-console"></div>
     </div>
 
     <div id="victory-overlay">
-        <h1 class="blink" style="font-size: 4rem; margin-bottom: 10px; color: var(--p1-color);">MISIÓN CUMPLIDA</h1>
-        <h2 id="winner-text" style="font-size: 2rem; border: 2px solid #fff; padding: 10px 30px;"></h2>
-        <p style="margin-top: 20px; letter-spacing: 5px;">PRESIONEN 'NUEVA PARTIDA' PARA REINICIAR</p>
+        <h1 class="blink">MISIÓN CUMPLIDA</h1>
+        <h2 id="winner-text"></h2>
+        <p>REINICIEN DESDE EL TERMINAL MÓVIL</p>
     </div>
 
     <script>
         const socket = io();
-        const log = document.getElementById('log-console');
-        let timerInterval;
-
         const personajes = [
-            { id: 1, nombre: "MICKEY" }, { id: 2, nombre: "ELSA" },
-            { id: 3, nombre: "WOODY" }, { id: 4, nombre: "STITCH" },
-            { id: 5, nombre: "SIMBA" }, { id: 6, nombre: "MALEFICA" },
-            { id: 7, nombre: "BUZZ" }, { id: 8, nombre: "MOANA" },
-            { id: 9, nombre: "GOOFY" }, { id: 10, nombre: "DONALD" },
-            { id: 11, nombre: "MULAN" }, { id: 12, nombre: "PETER PAN" },
-            { id: 13, nombre: "RAPUNZEL" }, { id: 14, nombre: "ALADDIN" },
-            { id: 15, nombre: "OLAF" }, { id: 16, nombre: "CENICIENTA" }
+            { id: 1, nombre: "MICKEY" }, { id: 2, nombre: "ELSA" }, { id: 3, nombre: "WOODY" }, { id: 4, nombre: "STITCH" },
+            { id: 5, nombre: "SIMBA" }, { id: 6, nombre: "MALEFICA" }, { id: 7, nombre: "BUZZ" }, { id: 8, nombre: "MOANA" },
+            { id: 9, nombre: "GOOFY" }, { id: 10, nombre: "DONALD" }, { id: 11, nombre: "MULAN" }, { id: 12, nombre: "PETER PAN" },
+            { id: 13, nombre: "RAPUNZEL" }, { id: 14, nombre: "ALADDIN" }, { id: 15, nombre: "OLAF" }, { id: 16, nombre: "CENICIENTA" }
         ];
 
-        // Función para sonidos de sistema
-        function playBeep(freq = 440, dur = 0.1) {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.type = 'square'; osc.frequency.value = freq;
-                gain.gain.value = 0.03;
-                osc.start(); osc.stop(audioCtx.currentTime + dur);
-            } catch(e) {}
-        }
-
-        // Inicializar los dos tableros con IDs únicos
         function initBoards() {
             ['JUGADOR-1', 'JUGADOR-2'].forEach(role => {
                 const board = document.getElementById(`board-${role}`);
@@ -79,14 +51,7 @@
                     const div = document.createElement('div');
                     div.className = 'char-card';
                     div.id = `char-${role}-${p.id}`;
-                    
-                    div.innerHTML = `
-                        <div class="id-tag">REF_${p.id}</div>
-                        <div class="img-container">
-                            <img src="images/${p.id}.jpg" onerror="this.src='https://via.placeholder.com/150?text=IMG_ERR';">
-                        </div>
-                        <div class="name">${p.nombre}</div>
-                    `;
+                    div.innerHTML = `<div class="id-tag">ID_${p.id}</div><div class="img-container"><img src="images/${p.id}.jpg"></div><div class="name">${p.nombre}</div>`;
                     board.appendChild(div);
                 });
             });
@@ -95,52 +60,32 @@
         socket.emit('register-device', 'tv');
 
         socket.on('start-timer', () => {
-            let sec = 0; clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
+            let sec = 0;
+            setInterval(() => {
                 sec++;
                 let m = Math.floor(sec/60).toString().padStart(2,'0');
                 let s = (sec%60).toString().padStart(2,'0');
                 document.getElementById('timer').textContent = `${m}:${s}`;
             }, 1000);
-            addLog("CRONÓMETRO INICIADO - BUENA CAZA.");
         });
 
         socket.on('visual-discard', (data) => {
             const roleId = data.role.replace(' ', '-');
             const card = document.getElementById(`char-${roleId}-${data.id}`);
-            if(card) {
-                card.classList.toggle('eliminated');
-                playBeep(200, 0.05);
-                addLog(`${data.role}: ELIMINÓ OBJETIVO REF_${data.id}`);
-            }
+            if(card) card.classList.toggle('eliminated');
         });
 
         socket.on('game-over', (data) => {
-            clearInterval(timerInterval);
             document.getElementById('victory-overlay').style.display = 'flex';
-            document.getElementById('winner-text').textContent = `${data.player} GANÓ: ${data.character}`;
-            playBeep(800, 0.4);
+            document.getElementById('winner-text').textContent = `${data.player} ENCONTRÓ A ${data.character}`;
         });
 
-        socket.on('reset-game', () => {
-            clearInterval(timerInterval);
-            document.getElementById('timer').textContent = "00:00";
-            document.getElementById('victory-overlay').style.display = 'none';
-            initBoards();
-            log.innerHTML = '<p>> SISTEMA REINICIADO - ESPERANDO ÓRDENES...</p>';
-            playBeep(400, 0.1);
-        });
-
+        socket.on('reset-game', () => { location.reload(); });
         socket.on('update-status', (msg) => {
-            addLog(msg);
-        });
-
-        function addLog(msg) {
             const p = document.createElement('p');
-            p.textContent = `> ${msg.toUpperCase()}`;
-            log.appendChild(p);
-            log.scrollTop = log.scrollHeight;
-        }
+            p.textContent = `> ${msg}`;
+            document.getElementById('log-console').appendChild(p);
+        });
 
         initBoards();
     </script>
