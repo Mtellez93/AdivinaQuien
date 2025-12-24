@@ -12,41 +12,59 @@
         .p1-theme { background: #00f2ff; color: #000; box-shadow: 0 0 10px #00f2ff; }
         .p2-theme { background: #ffaa00; color: #000; box-shadow: 0 0 10px #ffaa00; }
         
-        .secret-card { background: #111; border: 2px dashed #444; padding: 15px; text-align: center; margin-bottom: 20px; font-size: 1.2rem; }
-        .secret-name { color: #00f2ff; font-weight: bold; display: block; margin-top: 5px; }
+        .secret-card { background: #111; border: 2px dashed #444; padding: 15px; text-align: center; margin-bottom: 20px; font-size: 1.2rem; transition: 0.5s; }
+        .secret-name { color: #555; font-weight: bold; display: block; margin-top: 5px; }
 
         .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        button { border: 1px solid #444; background: #222; color: #fff; padding: 15px 5px; font-family: inherit; font-size: 0.8rem; cursor: pointer; }
+        button { border: 1px solid #444; background: #222; color: #fff; padding: 15px 5px; font-family: inherit; font-size: 0.8rem; cursor: pointer; transition: 0.3s; }
         
-        .btn-start { background: #008800; border-color: #0f0; font-weight: bold; }
-        .btn-win { background: #880000; border-color: #f00; font-weight: bold; }
-        .btn-reset { grid-column: span 2; background: #333; }
+        .btn-start { background: #004400; border-color: #0f0; font-weight: bold; }
+        .btn-win { background: #440000; border-color: #f00; font-weight: bold; }
+        .btn-reset { grid-column: span 2; background: #1a1a1a; color: #888; border-color: #333; }
 
-        .grid-chars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-        .char-btn { border: 1px solid #444; transition: 0.2s; }
+        .grid-chars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; transition: 0.5s; }
+        .char-btn { border: 1px solid #444; }
         .char-btn.off { opacity: 0.3; background: #000; text-decoration: line-through; border-color: #f00; color: #f00; }
+        
+        /* ESTADOS DE BLOQUEO */
+        .locked-ui { 
+            opacity: 0.3; 
+            filter: grayscale(1); 
+            pointer-events: none; 
+            transform: scale(0.98);
+        }
+
+        .active-target {
+            border-color: #0f0 !important;
+            box-shadow: inset 0 0 15px rgba(0,255,0,0.1);
+        }
     </style>
 </head>
 <body>
     <div id="role-tag" class="role-banner">CONECTANDO...</div>
     
-    <div class="secret-card">
-        TU OBJETIVO: <span id="secret-target" class="secret-name">???</span>
+    <div id="secret-card-ui" class="secret-card">
+        ESTADO: <span id="secret-target" class="secret-name">SISTEMA BLOQUEADO</span>
     </div>
 
     <div class="controls">
-        <button class="btn-start" onclick="socket.emit('start-game')">INICIAR PARTIDA</button>
-        <button class="btn-win" onclick="win()">¡ADIVINÉ!</button>
-        <button class="btn-reset" onclick="socket.emit('request-reset')">NUEVA PARTIDA</button>
+        <button id="start-btn" class="btn-start" onclick="startGame()">INICIAR PARTIDA</button>
+        <button id="win-btn" class="btn-win locked-ui" onclick="win()">¡ADIVINÉ!</button>
+        <button class="btn-reset" onclick="socket.emit('request-reset')">RESET GENERAL</button>
     </div>
 
-    <div class="grid-chars" id="char-grid"></div>
+    <div class="grid-chars locked-ui" id="char-grid"></div>
 
     <script>
         const socket = io();
+        let gameStarted = false;
+
         const roleTag = document.getElementById('role-tag');
         const secretTarget = document.getElementById('secret-target');
         const charGrid = document.getElementById('char-grid');
+        const secretCard = document.getElementById('secret-card-ui');
+        const startBtn = document.getElementById('start-btn');
+        const winBtn = document.getElementById('win-btn');
 
         const personajes = ["MICKEY", "ELSA", "WOODY", "STITCH", "SIMBA", "MALEFICA", "BUZZ", "MOANA", "GOOFY", "DONALD", "MULAN", "PETER PAN", "RAPUNZEL", "ALADDIN", "OLAF", "CENICIENTA"];
 
@@ -57,9 +75,26 @@
             roleTag.className = 'role-banner ' + (role === 'JUGADOR 1' ? 'p1-theme' : 'p2-theme');
         });
 
+        function startGame() {
+            socket.emit('start-game');
+        }
+
+        // DESBLOQUEO DE INTERFAZ
         socket.on('secret-character', (name) => {
+            gameStarted = true;
+            
+            // Actualizar Texto
             secretTarget.textContent = name;
-            secretTarget.style.color = "#0f0";
+            secretTarget.style.color = "#00f2ff";
+            
+            // Cambiar Estilos Visuales
+            secretCard.classList.add('active-target');
+            charGrid.classList.remove('locked-ui');
+            winBtn.classList.remove('locked-ui');
+            
+            // Bloquear botón de inicio
+            startBtn.classList.add('locked-ui');
+            startBtn.textContent = "EN CURSO";
         });
 
         function render() {
@@ -69,6 +104,7 @@
                 b.className = 'char-btn';
                 b.textContent = p;
                 b.onclick = () => {
+                    if(!gameStarted) return;
                     b.classList.toggle('off');
                     socket.emit('discard-character', {
                         id: index + 1,
@@ -80,7 +116,8 @@
         }
 
         function win() {
-            const guess = prompt("IDENTIFICA AL OBJETIVO:");
+            if(!gameStarted) return;
+            const guess = prompt("IDENTIFICA AL PERSONAJE RIVAL:");
             if(guess) {
                 socket.emit('declare-winner', {
                     player: roleTag.textContent.replace('OPERADOR: ', ''),
@@ -90,8 +127,16 @@
         }
 
         socket.on('reset-game', () => {
-            secretTarget.textContent = "???";
-            secretTarget.style.color = "#00f2ff";
+            gameStarted = false;
+            secretTarget.textContent = "SISTEMA BLOQUEADO";
+            secretTarget.style.color = "#555";
+            
+            secretCard.classList.remove('active-target');
+            charGrid.classList.add('locked-ui');
+            winBtn.classList.add('locked-ui');
+            
+            startBtn.classList.remove('locked-ui');
+            startBtn.textContent = "INICIAR PARTIDA";
             render();
         });
 
