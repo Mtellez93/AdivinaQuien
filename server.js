@@ -10,6 +10,8 @@ const io = new Server(server);
 app.use(express.static(path.join(__dirname, 'public')));
 
 let players = {};
+let currentMatch = { "JUGADOR 1": "", "JUGADOR 2": "" };
+
 const personajes = [
     "MICKEY", "ELSA", "WOODY", "STITCH", "SIMBA", "MALEFICA", 
     "BUZZ", "MOANA", "GOOFY", "DONALD", "MULAN", "PETER PAN", 
@@ -30,18 +32,19 @@ io.on('connection', (socket) => {
     });
 
     socket.on('start-game', () => {
-        // Seleccionar personajes aleatorios
         const p1Char = personajes[Math.floor(Math.random() * personajes.length)];
         const p2Char = personajes[Math.floor(Math.random() * personajes.length)];
 
-        // Enviar a cada uno su personaje de forma privada
+        currentMatch["JUGADOR 1"] = p1Char;
+        currentMatch["JUGADOR 2"] = p2Char;
+
         for (const [id, role] of Object.entries(players)) {
             if (role === 'JUGADOR 1') io.to(id).emit('secret-character', p1Char);
             if (role === 'JUGADOR 2') io.to(id).emit('secret-character', p2Char);
         }
 
         io.emit('start-timer');
-        io.to('tv-room').emit('update-status', "PARTIDA INICIADA: OBJETIVOS ASIGNADOS.");
+        io.to('tv-room').emit('update-status', "OBJETIVOS ASIGNADOS. INICIANDO RASTREO.");
     });
 
     socket.on('discard-character', (data) => {
@@ -49,10 +52,22 @@ io.on('connection', (socket) => {
     });
 
     socket.on('declare-winner', (data) => {
-        io.emit('game-over', data);
+        const myRole = data.player;
+        const rivalRole = myRole === 'JUGADOR 1' ? 'JUGADOR 2' : 'JUGADOR 1';
+        const targetToGuess = currentMatch[rivalRole];
+
+        if (data.character.trim().toUpperCase() === targetToGuess) {
+            io.emit('game-over', { 
+                player: myRole, 
+                character: targetToGuess 
+            });
+        } else {
+            socket.emit('guess-error', `EL OBJETIVO NO ES ${data.character}. SIGUE BUSCANDO.`);
+        }
     });
 
     socket.on('request-reset', () => {
+        currentMatch = { "JUGADOR 1": "", "JUGADOR 2": "" };
         io.emit('reset-game');
     });
 
@@ -63,5 +78,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor en línea.`);
+    console.log(`Servidor activo en puerto ${PORT}`);
 });
