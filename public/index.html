@@ -21,14 +21,14 @@
         </header>
         <div class="grid-terminal" id="board"></div>
         <div id="log-console">
-            <p>> ESPERANDO CONEXIÓN...</p>
+            <p>> ESPERANDO JUGADORES...</p>
         </div>
     </div>
 
     <div id="victory-overlay">
         <h1 class="blink">MISIÓN CUMPLIDA</h1>
         <h2 id="winner-text"></h2>
-        <p>ESPERANDO REINICIO DESDE EL MÓVIL...</p>
+        <p>PRESIONEN 'NUEVA PARTIDA' EN EL MÓVIL</p>
     </div>
 
     <script>
@@ -103,15 +103,12 @@
             playBeep(600, 0.5);
         });
 
-        // LÓGICA DE REINICIO EN TV
         socket.on('reset-game', () => {
             clearInterval(timerInterval);
             document.getElementById('timer').textContent = "00:00";
             document.getElementById('victory-overlay').style.display = 'none';
+            log.innerHTML = '<p>> SISTEMA REINICIADO.</p>';
             initBoard();
-            const p = document.createElement('p');
-            p.textContent = `> SISTEMA REINICIADO POR EL CLIENTE.`;
-            log.appendChild(p);
         });
 
         socket.on('update-status', (msg) => {
