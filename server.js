@@ -44,7 +44,6 @@ io.on('connection', (socket) => {
         }
 
         io.emit('start-timer');
-        io.to('tv-room').emit('update-status', "OBJETIVOS ASIGNADOS. INICIANDO RASTREO.");
     });
 
     socket.on('discard-character', (data) => {
@@ -62,7 +61,7 @@ io.on('connection', (socket) => {
                 character: targetToGuess 
             });
         } else {
-            socket.emit('guess-error', `EL OBJETIVO NO ES ${data.character}. SIGUE BUSCANDO.`);
+            socket.emit('guess-error', `EL OBJETIVO NO ES ${data.character}.`);
         }
     });
 
@@ -78,5 +77,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor activo en puerto ${PORT}`);
+    console.log(`Servidor en puerto ${PORT}`);
 });
