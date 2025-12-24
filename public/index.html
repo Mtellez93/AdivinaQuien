@@ -11,12 +11,12 @@
     <div class="container">
         <header>
             <h1>> SYSTEM STATUS: <span class="blink">ONLINE</span></h1>
-            <p>CENTRAL DATABASE: DISNEY_CHARACTERS_V2.0</p>
+            <p>DATABASE: DISNEY_RECORDS_V2.0</p>
             <hr>
         </header>
 
         <div id="log-console">
-            <p>> ESPERANDO CONEXIÓN DE CLIENTES...</p>
+            <p>> SISTEMA INICIALIZADO. ESPERANDO JUGADORES...</p>
         </div>
 
         <div class="grid-terminal" id="board">
@@ -25,23 +25,46 @@
 
     <script>
         const socket = io();
+        const board = document.getElementById('board');
         const log = document.getElementById('log-console');
 
-        // Registrar este dispositivo como la TV
+        // Lista de personajes (Puedes ampliarla después)
+        const personajes = [
+            { id: 1, nombre: "MICKEY MOUSE" }, { id: 2, nombre: "ELSA" },
+            { id: 3, nombre: "WOODY" }, { id: 4, nombre: "STITCH" },
+            { id: 5, nombre: "SIMBA" }, { id: 6, nombre: "MALÉFICA" },
+            { id: 7, nombre: "BUZZ LIGHTYEAR" }, { id: 8, nombre: "MOANA" },
+            { id: 9, nombre: "GOOFY" }, { id: 10, nombre: "DONALD" },
+            { id: 11, nombre: "MULAN" }, { id: 12, nombre: "PETER PAN" }
+        ];
+
+        // Dibujar el tablero
+        personajes.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'char-card';
+            div.id = `char-${p.id}`;
+            div.innerHTML = `<div class="id-tag">ID_${p.id}</div><div class="name">${p.nombre}</div>`;
+            board.appendChild(div);
+        });
+
         socket.emit('register-device', 'tv');
 
         socket.on('update-status', (msg) => {
             const p = document.createElement('p');
             p.textContent = `> ${msg}`;
             log.appendChild(p);
-            // Auto-scroll al final
             log.scrollTop = log.scrollHeight;
         });
 
-        // Aquí recibiremos qué personaje eliminar
+        // Escuchar cuando alguien es descartado desde un celular
         socket.on('visual-discard', (data) => {
             const card = document.getElementById(`char-${data.id}`);
-            if(card) card.classList.add('eliminated');
+            if(card) {
+                card.classList.add('eliminated');
+                const p = document.createElement('p');
+                p.textContent = `> ALERTA: SUJETO ${data.id} ELIMINADO DEL RASTREO.`;
+                log.appendChild(p);
+            }
         });
     </script>
 </body>
