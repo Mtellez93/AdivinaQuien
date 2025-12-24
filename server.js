@@ -20,13 +20,13 @@ io.on('connection', (socket) => {
                          (Object.values(players).includes('JUGADOR 1') ? 'JUGADOR 2' : 'JUGADOR 1') : 'ESPECTADOR';
             players[socket.id] = role;
             socket.emit('assign-role', role);
-            io.to('tv-room').emit('update-status', `${role} SE HA CONECTADO.`);
+            io.to('tv-room').emit('update-status', `${role} CONECTADO.`);
         }
     });
 
     socket.on('start-game', () => {
         io.emit('start-timer');
-        io.to('tv-room').emit('update-status', "CRONÓMETRO INICIADO. ¡SUERTE!");
+        io.to('tv-room').emit('update-status', "CRONÓMETRO INICIADO.");
     });
 
     socket.on('discard-character', (data) => {
@@ -35,6 +35,11 @@ io.on('connection', (socket) => {
 
     socket.on('declare-winner', (data) => {
         io.emit('game-over', data);
+    });
+
+    // NUEVO: Evento para reiniciar todo
+    socket.on('request-reset', () => {
+        io.emit('reset-game');
     });
 
     socket.on('disconnect', () => {
