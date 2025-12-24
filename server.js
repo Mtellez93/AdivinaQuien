@@ -30,21 +30,20 @@ io.on('connection', (socket) => {
     });
 
     socket.on('start-game', () => {
-        // Elegir personajes secretos al azar
         const p1Char = personajes[Math.floor(Math.random() * personajes.length)];
         const p2Char = personajes[Math.floor(Math.random() * personajes.length)];
 
-        // Enviar a cada jugador su personaje de forma privada
         for (const [id, role] of Object.entries(players)) {
             if (role === 'JUGADOR 1') io.to(id).emit('secret-character', p1Char);
             if (role === 'JUGADOR 2') io.to(id).emit('secret-character', p2Char);
         }
 
         io.emit('start-timer');
-        io.to('tv-room').emit('update-status', "¡PERSONAJES ASIGNADOS! REVISEN SUS CELULARES.");
+        io.to('tv-room').emit('update-status', "¡PARTIDA INICIADA! TABLEROS INDEPENDIENTES LISTOS.");
     });
 
     socket.on('discard-character', (data) => {
+        // data contiene el ID del personaje y el ROL del jugador
         io.to('tv-room').emit('visual-discard', data);
     });
 
