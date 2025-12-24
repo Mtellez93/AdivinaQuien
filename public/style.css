@@ -1,29 +1,35 @@
+/* Contenedor principal para organizar todo verticalmente */
+.main-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 95vh; /* Usa casi toda la altura de la TV */
+    justify-content: space-between;
+}
+
+/* Ajustamos el tablero para que no crezca infinitamente */
 .grid-terminal {
     display: grid;
-    grid-template-columns: repeat(4, 1fr); /* 4 personajes por fila */
-    gap: 20px;
-    margin-top: 20px;
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 15px;
+    flex-grow: 1; /* Esto hace que el tablero ocupe el espacio disponible */
+    overflow-y: auto; /* Si hay demasiados personajes, permite scroll interno */
+    padding: 10px;
 }
 
-.char-card {
-    border: 2px solid #00ff41;
-    padding: 20px;
-    background: rgba(0, 59, 0, 0.3);
-    text-align: center;
-    position: relative;
+/* Ajustamos la consola de mensajes */
+#log-console {
+    height: 120px; /* Altura fija para que no crezca */
+    background: rgba(0, 30, 0, 0.8);
+    border: 1px solid #00ff41;
+    margin-top: 10px;
+    padding: 10px;
+    overflow-y: scroll; /* Siempre muestra scroll para los mensajes */
+    font-size: 0.8em;
+    flex-shrink: 0; /* Evita que la consola se haga más pequeña */
 }
 
-.char-card .id-tag {
-    font-size: 0.7em;
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    color: #008f11;
-}
-
-.char-card.eliminated {
-    border-color: #ff0000;
-    color: #ff0000;
-    opacity: 0.2;
-    text-decoration: line-through;
+/* Efecto para que el texto nuevo siempre se vea (opcional) */
+#log-console p {
+    margin: 2px 0;
+    border-bottom: 1px solid rgba(0, 255, 65, 0.1);
 }
