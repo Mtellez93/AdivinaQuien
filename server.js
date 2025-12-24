@@ -13,18 +13,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 let players = {};
 let currentMatch = { "JUGADOR 1": "", "JUGADOR 2": "" };
 
-// URL de Google Sheets en formato CSV (Usando export para mayor estabilidad)
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/1jP73m0cs5RuxM_jNjsDH_tiwpdIH5zc6fM416NOIdHw/export?format=csv";
 
 async function getCharactersFromSheet() {
     try {
-        // Cachebuster para obtener siempre datos frescos
         const response = await axios.get(`${SHEET_URL}&cachebuster=${Date.now()}`);
         const content = response.data.replace(/\r/g, "");
-        const rows = content.split('\n').slice(1); // Omitir cabecera
+        const rows = content.split('\n').slice(1);
 
         const items = rows.map(row => {
-            // Regex para separar por comas respetando contenidos entre comillas
             const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             if (cols.length >= 3) {
                 return {
@@ -36,10 +33,9 @@ async function getCharactersFromSheet() {
             return null;
         }).filter(p => p && p.nombre && p.url.startsWith('http'));
 
-        console.log(`> Sistema: ${items.length} personajes cargados desde la nube.`);
         return items;
     } catch (e) {
-        console.error("> Error Crítico: No se pudo acceder al Google Sheet.", e.message);
+        console.error("> Error Sheets:", e.message);
         return [];
     }
 }
@@ -53,78 +49,57 @@ io.on('connection', (socket) => {
                          (Object.values(players).includes('JUGADOR 1') ? 'JUGADOR 2' : 'JUGADOR 1') : 'ESPECTADOR';
             players[socket.id] = role;
             socket.emit('assign-role', role);
-            console.log(`> Dispositivo registrado como: ${role}`);
         }
     });
 
     socket.on('start-game', async () => {
-        console.log("> Iniciando nueva partida con lógica de asignación cruzada...");
         const allChars = await getCharactersFromSheet();
-        
-        if (allChars.length < 16) {
-            console.log("> Error: Se necesitan al menos 16 personajes en el Excel.");
-            return;
-        }
+        if (allChars.length < 20) return; // Seguridad mínima
 
-        // 1. Generar tableros aleatorios para cada jugador
-        const p1Board = [...allChars].sort(() => 0.5 - Math.random()).slice(0, 16);
-        const p2Board = [...allChars].sort(() => 0.5 - Math.random()).slice(0, 16);
+        // 1. Elegimos los 2 personajes secretos de la lista completa primero
+        const shuffledAll = [...allChars].sort(() => 0.5 - Math.random());
+        const secretForP1toGuess = shuffledAll[0]; // Estará en el tablero de J2
+        const secretForP2toGuess = shuffledAll[1]; // Estará en el tablero de J1
 
-        // 2. LÓGICA DE ASIGNACIÓN CRUZADA:
-        // El personaje que J1 debe adivinar se elige del tablero de J2.
-        // El personaje que J2 debe adivinar se elige del tablero de J1.
-        const p1Target = p2Board[Math.floor(Math.random() * 16)].nombre;
-        const p2Target = p1Board[Math.floor(Math.random() * 16)].nombre;
+        // 2. Creamos el tablero para J1:
+        // Debe contener obligatoriamente el personaje que J2 tiene que adivinar (secretForP2toGuess)
+        // y 15 personajes más que NO sean el secreto que J1 debe adivinar (para evitar confusiones)
+        const poolForP1 = allChars.filter(p => p.id !== secretForP1toGuess.id && p.id !== secretForP2toGuess.id);
+        const p1Board = [secretForP2toGuess, ...poolForP1.sort(() => 0.5 - Math.random()).slice(0, 15)];
 
-        // Guardamos en el servidor quién debe adivinar a quién
-        currentMatch["JUGADOR 1"] = p1Target; 
-        currentMatch["JUGADOR 2"] = p2Target; 
+        // 3. Creamos el tablero para J2:
+        // Debe contener el personaje que J1 tiene que adivinar (secretForP1toGuess)
+        const poolForP2 = allChars.filter(p => p.id !== secretForP1toGuess.id && p.id !== secretForP2toGuess.id);
+        const p2Board = [secretForP1toGuess, ...poolForP2.sort(() => 0.5 - Math.random()).slice(0, 15)];
 
-        // 3. Notificar a los móviles
+        // 4. Barajamos los tableros finales para que el secreto no esté siempre en la primera posición
+        const finalP1Board = p1Board.sort(() => 0.5 - Math.random());
+        const finalP2Board = p2Board.sort(() => 0.5 - Math.random());
+
+        currentMatch["JUGADOR 1"] = secretForP1toGuess.nombre;
+        currentMatch["JUGADOR 2"] = secretForP2toGuess.nombre;
+
         for (const [id, role] of Object.entries(players)) {
-            if (role === 'JUGADOR 1') {
-                // J1 recibe su tablero y el personaje que EL RIVAL debe adivinar (p2Target)
-                io.to(id).emit('game-setup', { board: p1Board, secret: p2Target });
-            }
-            if (role === 'JUGADOR 2') {
-                // J2 recibe su tablero y el personaje que EL RIVAL debe adivinar (p1Target)
-                io.to(id).emit('game-setup', { board: p2Board, secret: p1Target });
-            }
+            if (role === 'JUGADOR 1') io.to(id).emit('game-setup', { board: finalP1Board, secret: secretForP1toGuess.nombre });
+            if (role === 'JUGADOR 2') io.to(id).emit('game-setup', { board: finalP2Board, secret: secretForP2toGuess.nombre });
         }
 
-        // 4. Notificar a la TV para dibujar los tableros
-        io.to('tv-room').emit('tv-setup', { p1Board, p2Board });
+        io.to('tv-room').emit('tv-setup', { p1Board: finalP1Board, p2Board: finalP2Board });
         io.emit('start-timer');
     });
 
-    socket.on('discard-character', (data) => {
-        io.to('tv-room').emit('visual-discard', data);
-    });
-
+    socket.on('discard-character', (data) => io.to('tv-room').emit('visual-discard', data));
     socket.on('declare-winner', (data) => {
-        const myRole = data.player;
-        const targetToGuess = currentMatch[myRole];
-
-        if (data.character.trim().toUpperCase() === targetToGuess.toUpperCase()) {
-            io.emit('game-over', { 
-                player: myRole, 
-                character: targetToGuess 
-            });
+        if (data.character.trim().toUpperCase() === currentMatch[data.player].toUpperCase()) {
+            io.emit('game-over', { player: data.player, character: currentMatch[data.player] });
         } else {
-            socket.emit('guess-error', `EL PERSONAJE "${data.character}" NO ES EL OBJETIVO.`);
+            socket.emit('guess-error', `ERROR: EL RIVAL NO TIENE A ${data.character}`);
         }
     });
 
-    socket.on('request-reset', () => {
-        io.emit('reset-game');
-    });
-
-    socket.on('disconnect', () => {
-        delete players[socket.id];
-    });
+    socket.on('request-reset', () => io.emit('reset-game'));
+    socket.on('disconnect', () => delete players[socket.id]);
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`>>> SERVIDOR ACTIVO EN PUERTO ${PORT} <<<`);
-});
+server.listen(PORT, '0.0.0.0', () => console.log(`Servidor Corregido en Puerto ${PORT}`));
