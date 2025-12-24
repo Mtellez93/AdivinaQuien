@@ -2,79 +2,117 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adivina Quien</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body class="terminal-body">
     <div class="scanline"></div>
+
     <div class="main-wrapper">
         <header>
-            <h1 style="color: var(--p1-color); margin:0;">> Adivina Quien<span class="blink"> ¿Puedes?</span></h1>
+            <div class="brand">
+                <h1 style="color: var(--p1-color); margin:0; font-size: 1.5rem;">
+                    > Adivina Quien <span class="blink"> ¿Puedes?</span>
+                </h1>
+            </div>
             <div id="timer">00:00</div>
         </header>
+
         <div class="dual-screen">
             <div class="player-section" id="board-JUGADOR-1-parent">
-                <div class="player-header p1-header">JUGADOR 1</div>
-                <div class="grid-terminal" id="board-JUGADOR-1"></div>
+                <div class="player-header p1-header">JUGADOR 1 </div>
+                <div class="grid-terminal" id="board-JUGADOR-1">
+                    </div>
             </div>
+
             <div class="player-section" id="board-JUGADOR-2-parent">
-                <div class="player-header p2-header">JUGADOR 2</div>
-                <div class="grid-terminal" id="board-JUGADOR-2"></div>
+                <div class="player-header p2-header">JUGADOR 2 </div>
+                <div class="grid-terminal" id="board-JUGADOR-2">
+                    </div>
             </div>
         </div>
-        <div id="log-console"></div>
-    </div>
+        </div>
+
     <div id="victory-overlay">
         <h1 class="blink">OBJETIVO CONFIRMADO</h1>
-        <h2 id="winner-text"></h2>
-        <p>REINICIE DESDE EL MÓVIL</p>
+        <h2 id="winner-text">GANADOR</h2>
+        <p>REINICIE DESDE EL DISPOSITIVO MÓVIL</p>
     </div>
 
     <script>
         const socket = io();
         let timerInterval;
 
+        // Registrar este dispositivo como la pantalla principal (TV)
         socket.emit('register-device', 'tv');
 
+        // Escuchar cuando el servidor envía los tableros generados
         socket.on('tv-setup', data => {
-            draw('JUGADOR-1', data.p1Board);
-            draw('JUGADOR-2', data.p2Board);
+            renderBoard('JUGADOR-1', data.p1Board);
+            renderBoard('JUGADOR-2', data.p2Board);
         });
 
-        function draw(role, list) {
-            const b = document.getElementById(`board-${role}`);
-            b.innerHTML = '';
-            list.forEach(p => {
-                const d = document.createElement('div');
-                d.className = 'char-card'; d.id = `char-${role}-${p.id}`;
-                d.innerHTML = `<div class="img-container"><img src="${p.url}"></div><div class="name">${p.nombre}</div>`;
-                b.appendChild(d);
+        // Función para dibujar los personajes en la rejilla
+        function renderBoard(role, list) {
+            const container = document.getElementById(`board-${role}`);
+            container.innerHTML = ''; // Limpiar tablero anterior
+
+            list.forEach(personaje => {
+                const card = document.createElement('div');
+                card.className = 'char-card';
+                card.id = `char-${role}-${personaje.id}`;
+
+                card.innerHTML = `
+                    <div class="img-container">
+                        <img src="${personaje.url}" alt="${personaje.nombre}">
+                    </div>
+                    <div class="name">${personaje.nombre}</div>
+                `;
+                container.appendChild(card);
             });
         }
 
+        // Iniciar el cronómetro cuando el servidor lo indique
         socket.on('start-timer', () => {
-            let s = 0; clearInterval(timerInterval);
+            let seconds = 0;
+            clearInterval(timerInterval);
             timerInterval = setInterval(() => {
-                s++;
-                let min = Math.floor(s/60).toString().padStart(2,'0');
-                let seg = (s%60).toString().padStart(2,'0');
+                seconds++;
+                let min = Math.floor(seconds / 60).toString().padStart(2, '0');
+                let seg = (seconds % 60).toString().padStart(2, '0');
                 document.getElementById('timer').textContent = `${min}:${seg}`;
             }, 1000);
         });
 
-        socket.on('visual-discard', d => {
-            const c = document.getElementById(`char-${d.role.replace(' ','-')}-${d.id}`);
-            if(c) c.classList.toggle('eliminated');
+        // Marcar personaje como eliminado (con la X roja)
+        socket.on('visual-discard', data => {
+            // Convertimos "JUGADOR 1" a "JUGADOR-1" para que coincida con el ID
+            const roleId = data.role.replace(' ', '-');
+            const card = document.getElementById(`char-${roleId}-${data.id}`);
+            if (card) {
+                card.classList.toggle('eliminated');
+            }
         });
 
-        socket.on('game-over', d => {
+        // Mostrar pantalla final de victoria
+        socket.on('game-over', data => {
             clearInterval(timerInterval);
-            document.getElementById('victory-overlay').style.display = 'flex';
-            document.getElementById('winner-text').textContent = `${d.player} GANÓ: ${d.character}`;
+            const overlay = document.getElementById('victory-overlay');
+            const winnerText = document.getElementById('winner-text');
+            
+            overlay.style.display = 'flex';
+            winnerText.textContent = `${data.player} IDENTIFICÓ A: ${data.character}`;
+            
+            // Cambiar color del texto según el ganador
+            winnerText.style.color = (data.player === 'JUGADOR 1') ? 'var(--p1-color)' : 'var(--p2-color)';
         });
 
-        socket.on('reset-game', () => location.reload());
+        // Reiniciar la página completa para una nueva partida
+        socket.on('reset-game', () => {
+            location.reload();
+        });
     </script>
 </body>
 </html>
