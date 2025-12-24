@@ -1,0 +1,15 @@
+{
+  "name": "disney-guess-who",
+  "version": "1.0.0",
+  "description": "Juego de Adivina Quien estilo terminal para TV y Celular",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
+  },
+  "author": "",
+  "license": "ISC"
+}
