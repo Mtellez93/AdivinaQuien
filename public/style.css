@@ -1,35 +1,160 @@
-/* Contenedor principal para organizar todo verticalmente */
+/* --- CONFIGURACIÓN BASE --- */
+:root {
+    --term-green: #00ff41;
+    --term-dim: #003b00;
+    --term-red: #ff3131;
+    --bg-black: #000000;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-black);
+    color: var(--term-green);
+    font-family: 'Courier New', Courier, monospace;
+    height: 100vh;
+    overflow: hidden; /* Evita scroll general de la página */
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- EFECTOS DE TERMINAL --- */
+.scanline {
+    width: 100%;
+    height: 100px;
+    z-index: 100;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(0, 255, 65, 0.05) 50%, rgba(0, 0, 0, 0) 100%);
+    opacity: 0.1;
+    position: absolute;
+    bottom: 100%;
+    animation: scan 4s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes scan {
+    0% { bottom: 100%; }
+    100% { bottom: -100%; }
+}
+
+.blink {
+    animation: blinker 1.2s linear infinite;
+}
+
+@keyframes blinker {
+    50% { opacity: 0; }
+}
+
+/* --- CONTENEDOR PRINCIPAL --- */
 .main-wrapper {
     display: flex;
     flex-direction: column;
-    height: 95vh; /* Usa casi toda la altura de la TV */
-    justify-content: space-between;
-}
-
-/* Ajustamos el tablero para que no crezca infinitamente */
-.grid-terminal {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr); 
+    height: 100vh;
+    padding: 20px;
     gap: 15px;
-    flex-grow: 1; /* Esto hace que el tablero ocupe el espacio disponible */
-    overflow-y: auto; /* Si hay demasiados personajes, permite scroll interno */
-    padding: 10px;
 }
 
-/* Ajustamos la consola de mensajes */
+header {
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--term-green);
+    padding-bottom: 10px;
+}
+
+header h1 {
+    font-size: 1.5rem;
+    letter-spacing: 2px;
+}
+
+/* --- TABLERO (ZONA SUPERIOR/MEDIA) --- */
+.grid-terminal {
+    flex-grow: 1; /* Ocupa todo el espacio disponible */
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 columnas para TV */
+    grid-auto-rows: min-content;
+    gap: 15px;
+    overflow-y: auto; /* Permite scroll solo si hay demasiados personajes */
+    padding-right: 5px;
+}
+
+/* Estilo de las tarjetas de personajes */
+.char-card {
+    border: 1px solid var(--term-green);
+    padding: 20px 10px;
+    text-align: center;
+    position: relative;
+    background: rgba(0, 59, 0, 0.1);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100px;
+}
+
+.char-card .id-tag {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    font-size: 0.6rem;
+    color: var(--term-green);
+    opacity: 0.7;
+}
+
+.char-card .name {
+    font-weight: bold;
+    font-size: 1rem;
+    word-wrap: break-word;
+}
+
+/* Estado cuando se elimina un personaje */
+.char-card.eliminated {
+    border-color: var(--term-red);
+    color: var(--term-red);
+    background: rgba(68, 0, 0, 0.3);
+    opacity: 0.4;
+}
+
+.char-card.eliminated::after {
+    content: "ELIMINATED";
+    position: absolute;
+    font-size: 0.8rem;
+    font-weight: bold;
+    background: var(--term-red);
+    color: black;
+    padding: 2px 5px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg);
+}
+
+/* --- CONSOLA DE LOGS (ZONA INFERIOR) --- */
 #log-console {
-    height: 120px; /* Altura fija para que no crezca */
-    background: rgba(0, 30, 0, 0.8);
-    border: 1px solid #00ff41;
-    margin-top: 10px;
+    height: 150px; /* Altura fija para que no empuje al tablero */
+    flex-shrink: 0;
+    background: #050505;
+    border: 1px solid var(--term-green);
     padding: 10px;
-    overflow-y: scroll; /* Siempre muestra scroll para los mensajes */
-    font-size: 0.8em;
-    flex-shrink: 0; /* Evita que la consola se haga más pequeña */
+    overflow-y: auto;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    box-shadow: inset 0 0 10px var(--term-dim);
 }
 
-/* Efecto para que el texto nuevo siempre se vea (opcional) */
 #log-console p {
-    margin: 2px 0;
-    border-bottom: 1px solid rgba(0, 255, 65, 0.1);
+    margin-bottom: 5px;
+    border-bottom: 1px solid rgba(0, 255, 65, 0.05);
+}
+
+/* Personalización del scroll para que parezca retro */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: var(--bg-black);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--term-dim);
+    border: 1px solid var(--term-green);
 }
