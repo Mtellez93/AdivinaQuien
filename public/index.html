@@ -1,26 +1,18 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>DISNEY SERVER TERMINAL</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="/socket.io/socket.io.js"></script>
-</head>
 <body class="terminal-body">
     <div class="scanline"></div>
-    <div class="container">
+    <div class="main-wrapper">
         <header>
             <h1>> SYSTEM STATUS: <span class="blink">ONLINE</span></h1>
             <p>DATABASE: DISNEY_RECORDS_V2.0</p>
             <hr>
         </header>
 
+        <div class="grid-terminal" id="board">
+            </div>
+
         <div id="log-console">
             <p>> SISTEMA INICIALIZADO. ESPERANDO JUGADORES...</p>
         </div>
-
-        <div class="grid-terminal" id="board">
-            </div>
     </div>
 
     <script>
@@ -68,4 +60,3 @@
         });
     </script>
 </body>
-</html>
