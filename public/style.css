@@ -1,52 +1,164 @@
 :root { --green: #00ff41; --red: #ff3131; --bg: #000; }
-body { background: var(--bg); color: var(--green); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; }
-.main-wrapper { display: flex; flex-direction: column; height: 100vh; padding: 10px; }
-header { border-bottom: 1px solid var(--green); padding-bottom: 5px; margin-bottom: 10px; }
-#timer { font-size: 2rem; color: var(--red); border: 1px solid var(--red); padding: 0 10px; }
+
+body { 
+    background: var(--bg); 
+    color: var(--green); 
+    font-family: 'Courier New', monospace; 
+    margin: 0; 
+    overflow: hidden; 
+}
+
+.main-wrapper { 
+    display: flex; 
+    flex-direction: column; 
+    height: 100vh; 
+    padding: 10px; 
+}
+
+header { 
+    border-bottom: 1px solid var(--green); 
+    padding-bottom: 5px; 
+    margin-bottom: 5px; 
+}
+
+#timer { 
+    font-size: 1.8rem; 
+    color: var(--red); 
+    border: 1px solid var(--red); 
+    padding: 0 10px; 
+}
 
 /* DISEÑO DUAL */
-.dual-screen { display: flex; flex-grow: 1; gap: 15px; overflow: hidden; }
-.player-section { flex: 1; display: flex; flex-direction: column; border: 1px solid rgba(0, 255, 65, 0.2); }
-.player-header { background: var(--green); color: #000; text-align: center; font-weight: bold; padding: 5px; font-size: 1rem; }
+.dual-screen { 
+    display: flex; 
+    flex-grow: 1; 
+    gap: 10px; 
+    overflow: hidden; 
+}
 
-.grid-terminal { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 10px; overflow-y: auto; }
+.player-section { 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
+    border: 1px solid rgba(0, 255, 65, 0.2); 
+    background: rgba(0, 20, 0, 0.2);
+}
 
-/* AJUSTE PARA LAS IMÁGENES */
+.player-header { 
+    background: var(--green); 
+    color: #000; 
+    text-align: center; 
+    font-weight: bold; 
+    padding: 3px; 
+    font-size: 0.9rem; 
+}
+
+/* REJILLA AJUSTADA */
+.grid-terminal { 
+    display: grid; 
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 5px; 
+    padding: 8px; 
+    overflow-y: auto; 
+}
+
+/* TARJETA DE PERSONAJE */
 .char-card { 
     border: 1px solid var(--green); 
-    padding: 5px; 
+    padding: 4px; 
     text-align: center; 
     position: relative; 
-    background: rgba(0,255,0,0.03); 
+    background: rgba(0, 0, 0, 0.5); 
     display: flex; 
     flex-direction: column; 
     align-items: center;
+    justify-content: space-between;
+    min-height: 100px; /* Altura mínima para que todas sean iguales */
 }
 
+/* CONTENEDOR DE IMAGEN CORREGIDO */
 .img-container {
     width: 100%;
-    height: 70px; /* Ajusta esto según el tamaño de tu TV */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 5px 0;
+    height: 65px; /* Altura fija para la foto */
+    margin: 4px 0;
     overflow: hidden;
+    border: 1px solid rgba(0, 255, 65, 0.3);
 }
 
 .img-container img {
-    max-width: 100%;
-    max-height: 100%;
-    filter: sepia(1) brightness(1.1) contrast(1.2); /* Efecto monitor antiguo */
-    object-fit: contain;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Recorta la imagen para que llene el cuadro sin deformarse */
+    object-position: center; /* Se asegura de que la cara del personaje sea el centro */
+    filter: sepia(0.8) brightness(1.1) contrast(1.2);
 }
 
-.char-card.eliminated { border-color: var(--red); color: var(--red); opacity: 0.2; }
-.char-card.eliminated img { filter: grayscale(1) brightness(0.5); }
+.char-card.eliminated { 
+    border-color: var(--red); 
+    color: var(--red); 
+    opacity: 0.15; /* Mucho más transparente al ser eliminado */
+}
 
-.id-tag { position: absolute; top: 2px; left: 2px; font-size: 0.5rem; opacity: 0.6; }
-.name { font-size: 0.6rem; font-weight: bold; }
+.char-card.eliminated img { 
+    filter: grayscale(1) brightness(0.3); 
+}
 
-#log-console { height: 70px; border: 1px solid var(--green); padding: 5px; overflow-y: auto; font-size: 0.7rem; background: #050505; margin-top: 5px; }
-#victory-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; justify-content: center; align-items: center; border: 5px double var(--green); text-align: center; }
+.id-tag { 
+    position: absolute; 
+    top: 2px; 
+    left: 2px; 
+    font-size: 0.5rem; 
+    opacity: 0.6; 
+}
+
+.name { 
+    font-size: 0.55rem; 
+    font-weight: bold; 
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+/* CONSOLA Y OTROS */
+#log-console { 
+    height: 60px; 
+    border: 1px solid var(--green); 
+    padding: 5px; 
+    overflow-y: auto; 
+    font-size: 0.65rem; 
+    background: #050505; 
+    margin-top: 5px; 
+}
+
+#victory-overlay { 
+    display: none; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0,0,0,0.95); 
+    z-index: 1000; 
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center; 
+    border: 5px double var(--green); 
+    text-align: center; 
+}
+
 .blink { animation: b 1.2s infinite; }
 @keyframes b { 50% { opacity: 0; } }
+
+.scanline { 
+    position: fixed; 
+    top: 0; 
+    width: 100%; 
+    height: 2px; 
+    background: rgba(0,255,0,0.05); 
+    z-index: 1001; 
+    pointer-events: none; 
+    animation: s 3s linear infinite; 
+}
+@keyframes s { 0% { top: 0; } 100% { top: 100%; } }
