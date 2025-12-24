@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>TACTICAL TV</title>
+    <title>TACTICAL TV - CLEAN VIEW</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -48,7 +48,13 @@
                 personajes.forEach(p => {
                     const d = document.createElement('div');
                     d.className = 'char-card'; d.id = `char-${role}-${p.id}`;
-                    d.innerHTML = `<div class="id-tag">REF_${p.id}</div><div class="img-container"><img src="images/${p.id}.jpg"></div><div class="name">${p.nombre}</div>`;
+                    // ELIMINADA LA ETIQUETA REF_ID AQUÍ:
+                    d.innerHTML = `
+                        <div class="img-container">
+                            <img src="images/${p.id}.jpg">
+                        </div>
+                        <div class="name">${p.nombre}</div>
+                    `;
                     b.appendChild(d);
                 });
             });
@@ -67,7 +73,7 @@
         });
 
         socket.on('game-over', d => {
-            clearInterval(timerInterval); // DETIENE EL TIEMPO
+            clearInterval(timerInterval);
             document.getElementById('victory-overlay').style.display = 'flex';
             document.getElementById('winner-text').textContent = `${d.player} GANÓ IDENTIFICANDO A ${d.character}`;
         });
