@@ -21,24 +21,20 @@
         .grid-chars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
         .char-btn { border: 1px solid #444; padding: 10px 2px; font-size: 0.75rem; }
         .char-btn.off { opacity: 0.3; background: #000; text-decoration: line-through; color: #f00; }
-        .locked-ui { opacity: 0.2; filter: grayscale(1); pointer-events: none; }
+        .locked-ui { opacity: 0.2 !important; filter: grayscale(1) !important; pointer-events: none !important; }
     </style>
 </head>
 <body>
     <div id="role-tag" class="role-banner">CONECTANDO...</div>
-    
     <div id="secret-card-ui" class="secret-card">
         OBJETIVO DEL RIVAL:
         <span id="secret-target" class="secret-name">BLOQUEADO</span>
-        <small style="font-size: 0.6rem; opacity: 0.5;">(TU RIVAL DEBE ADIVINAR ESTE PERSONAJE)</small>
     </div>
-
     <div class="controls">
         <button id="start-btn" class="btn-start" onclick="socket.emit('start-game')">INICIAR PARTIDA</button>
         <button id="win-btn" class="btn-win locked-ui" onclick="win()">¡ADIVINÉ!</button>
         <button class="btn-reset" onclick="socket.emit('request-reset')">REINICIAR TODO</button>
     </div>
-
     <div class="grid-chars locked-ui" id="char-grid"></div>
 
     <script>
@@ -47,15 +43,15 @@
         const personajes = ["MICKEY", "ELSA", "WOODY", "STITCH", "SIMBA", "MALEFICA", "BUZZ", "MOANA", "GOOFY", "DONALD", "MULAN", "PETER PAN", "RAPUNZEL", "ALADDIN", "OLAF", "CENICIENTA"];
 
         socket.emit('register-device', 'mobile');
-
-        socket.on('assign-role', role => {
-            document.getElementById('role-tag').textContent = `OPERADOR: ${role}`;
-            document.getElementById('role-tag').className = 'role-banner ' + (role === 'JUGADOR 1' ? 'p1-theme' : 'p2-theme');
+        socket.on('assign-role', r => {
+            const t = document.getElementById('role-tag');
+            t.textContent = `OPERADOR: ${r}`;
+            t.className = 'role-banner ' + (r === 'JUGADOR 1' ? 'p1-theme' : 'p2-theme');
         });
 
-        socket.on('secret-character', (name) => {
+        socket.on('secret-character', n => {
             gameStarted = true;
-            document.getElementById('secret-target').textContent = name;
+            document.getElementById('secret-target').textContent = n;
             document.getElementById('secret-target').style.color = "#00f2ff";
             document.getElementById('char-grid').classList.remove('locked-ui');
             document.getElementById('win-btn').classList.remove('locked-ui');
@@ -63,44 +59,35 @@
             document.getElementById('start-btn').textContent = "EN CURSO";
         });
 
-        socket.on('guess-error', (msg) => {
-            alert(msg);
+        socket.on('guess-error', m => alert(m));
+
+        socket.on('game-over', d => {
+            gameStarted = false;
+            document.getElementById('char-grid').classList.add('locked-ui');
+            document.getElementById('win-btn').classList.add('locked-ui');
+            alert(`¡SISTEMA DETENIDO! GANADOR: ${d.player}`);
         });
 
         function render() {
-            const grid = document.getElementById('char-grid');
-            grid.innerHTML = '';
-            personajes.forEach((p, index) => {
+            const g = document.getElementById('char-grid');
+            g.innerHTML = '';
+            personajes.forEach((p, i) => {
                 const b = document.createElement('button');
-                b.className = 'char-btn';
-                b.textContent = p;
+                b.className = 'char-btn'; b.textContent = p;
                 b.onclick = () => {
                     if(!gameStarted) return;
                     b.classList.toggle('off');
-                    socket.emit('discard-character', {
-                        id: index + 1,
-                        role: document.getElementById('role-tag').textContent.replace('OPERADOR: ', '')
-                    });
+                    socket.emit('discard-character', {id: i+1, role: document.getElementById('role-tag').textContent.replace('OPERADOR: ', '')});
                 };
-                grid.appendChild(b);
+                g.appendChild(b);
             });
         }
-
         function win() {
             if(!gameStarted) return;
             const guess = prompt("¿QUÉ PERSONAJE TIENE TU RIVAL?");
-            if(guess) {
-                socket.emit('declare-winner', {
-                    player: document.getElementById('role-tag').textContent.replace('OPERADOR: ', ''),
-                    character: guess.toUpperCase()
-                });
-            }
+            if(guess) socket.emit('declare-winner', {player: document.getElementById('role-tag').textContent.replace('OPERADOR: ', ''), character: guess.toUpperCase()});
         }
-
-        socket.on('reset-game', () => {
-            location.reload();
-        });
-
+        socket.on('reset-game', () => location.reload());
         render();
     </script>
 </body>
