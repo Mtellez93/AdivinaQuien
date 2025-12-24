@@ -1,62 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DISNEY SERVER TERMINAL</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
 <body class="terminal-body">
     <div class="scanline"></div>
+    
     <div class="main-wrapper">
         <header>
             <h1>> SYSTEM STATUS: <span class="blink">ONLINE</span></h1>
-            <p>DATABASE: DISNEY_RECORDS_V2.0</p>
+            <p>DATABASE: DISNEY_RECORDS_V2.0 | SECURE_CONNECTION</p>
             <hr>
         </header>
 
-        <div class="grid-terminal" id="board">
-            </div>
+        <div class="grid-terminal" id="board"></div>
 
         <div id="log-console">
-            <p>> SISTEMA INICIALIZADO. ESPERANDO JUGADORES...</p>
+            <p>> SISTEMA INICIALIZADO...</p>
+            <p>> ESPERANDO CONEXIÓN DE DISPOSITIVOS MÓVILES...</p>
         </div>
     </div>
 
     <script>
+        // 1. Configuración Inicial
         const socket = io();
         const board = document.getElementById('board');
         const log = document.getElementById('log-console');
 
-        // Lista de personajes (Puedes ampliarla después)
+        // 2. Base de Datos de Personajes
         const personajes = [
             { id: 1, nombre: "MICKEY MOUSE" }, { id: 2, nombre: "ELSA" },
             { id: 3, nombre: "WOODY" }, { id: 4, nombre: "STITCH" },
-            { id: 5, nombre: "SIMBA" }, { id: 6, nombre: "MALÉFICA" },
+            { id: 5, nombre: "SIMBA" }, { id: 6, nombre: "MALEFICA" },
             { id: 7, nombre: "BUZZ LIGHTYEAR" }, { id: 8, nombre: "MOANA" },
             { id: 9, nombre: "GOOFY" }, { id: 10, nombre: "DONALD" },
-            { id: 11, nombre: "MULAN" }, { id: 12, nombre: "PETER PAN" }
+            { id: 11, nombre: "MULAN" }, { id: 12, nombre: "PETER PAN" },
+            { id: 13, nombre: "RAPUNZEL" }, { id: 14, nombre: "ALADDIN" },
+            { id: 15, nombre: "OLAF" }, { id: 16, nombre: "CENICIENTA" }
         ];
 
-        // Dibujar el tablero
-        personajes.forEach(p => {
-            const div = document.createElement('div');
-            div.className = 'char-card';
-            div.id = `char-${p.id}`;
-            div.innerHTML = `<div class="id-tag">ID_${p.id}</div><div class="name">${p.nombre}</div>`;
-            board.appendChild(div);
-        });
+        // 3. Función para generar Sonido Retro
+        function playBeep() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.1);
+            } catch(e) { console.log("Audio bloqueado"); }
+        }
 
-        socket.emit('register-device', 'tv');
+        // 4. Dibujar el Tablero al Cargar
+        function initBoard() {
+            board.innerHTML = ''; // Limpiar antes de llenar
+            personajes.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'char-card';
+                div.id = `char-${p.id}`;
+                div.innerHTML = `
+                    <div class="id-tag">ID_${p.id}</div>
+                    <div class="name">${p.nombre}</div>
+                `;
+                board.appendChild(div);
+            });
+            addLog("TABLERO DESPLEGADO CON ÉXITO.");
+        }
 
-        socket.on('update-status', (msg) => {
+        // 5. Función para escribir en la consola
+        function addLog(msg) {
             const p = document.createElement('p');
             p.textContent = `> ${msg}`;
             log.appendChild(p);
             log.scrollTop = log.scrollHeight;
+        }
+
+        // 6. Eventos de Socket
+        socket.emit('register-device', 'tv');
+
+        socket.on('update-status', (msg) => {
+            addLog(msg);
         });
 
-        // Escuchar cuando alguien es descartado desde un celular
         socket.on('visual-discard', (data) => {
             const card = document.getElementById(`char-${data.id}`);
-            if(card) {
+            if(card && !card.classList.contains('eliminated')) {
                 card.classList.add('eliminated');
-                const p = document.createElement('p');
-                p.textContent = `> ALERTA: SUJETO ${data.id} ELIMINADO DEL RASTREO.`;
-                log.appendChild(p);
+                playBeep();
+                addLog(`SUJETO ${data.id} ELIMINADO DEL RASTREO.`);
             }
         });
+
+        // Iniciar el tablero
+        initBoard();
     </script>
 </body>
+</html>
