@@ -43,7 +43,6 @@ io.on('connection', (socket) => {
     });
 
     socket.on('discard-character', (data) => {
-        // data contiene el ID del personaje y el ROL del jugador
         io.to('tv-room').emit('visual-discard', data);
     });
 
