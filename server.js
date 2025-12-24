@@ -11,8 +11,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 let players = {};
 const personajes = [
-    "MICKEY MOUSE", "ELSA", "WOODY", "STITCH", "SIMBA", "MALEFICA", 
-    "BUZZ LIGHTYEAR", "MOANA", "GOOFY", "DONALD", "MULAN", "PETER PAN", 
+    "MICKEY", "ELSA", "WOODY", "STITCH", "SIMBA", "MALEFICA", 
+    "BUZZ", "MOANA", "GOOFY", "DONALD", "MULAN", "PETER PAN", 
     "RAPUNZEL", "ALADDIN", "OLAF", "CENICIENTA"
 ];
 
@@ -30,16 +30,18 @@ io.on('connection', (socket) => {
     });
 
     socket.on('start-game', () => {
+        // Seleccionar personajes aleatorios
         const p1Char = personajes[Math.floor(Math.random() * personajes.length)];
         const p2Char = personajes[Math.floor(Math.random() * personajes.length)];
 
+        // Enviar a cada uno su personaje de forma privada
         for (const [id, role] of Object.entries(players)) {
             if (role === 'JUGADOR 1') io.to(id).emit('secret-character', p1Char);
             if (role === 'JUGADOR 2') io.to(id).emit('secret-character', p2Char);
         }
 
         io.emit('start-timer');
-        io.to('tv-room').emit('update-status', "¡PARTIDA INICIADA! TABLEROS INDEPENDIENTES LISTOS.");
+        io.to('tv-room').emit('update-status', "PARTIDA INICIADA: OBJETIVOS ASIGNADOS.");
     });
 
     socket.on('discard-character', (data) => {
@@ -61,5 +63,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor activo.`);
+    console.log(`Servidor en línea.`);
 });
