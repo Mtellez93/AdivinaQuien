@@ -19,18 +19,16 @@
             </div>
             <hr>
         </header>
-
         <div class="grid-terminal" id="board"></div>
-
         <div id="log-console">
-            <p>> ESPERANDO CONEXIÓN DE DISPOSITIVOS...</p>
+            <p>> ESPERANDO CONEXIÓN...</p>
         </div>
     </div>
 
     <div id="victory-overlay">
         <h1 class="blink">MISIÓN CUMPLIDA</h1>
         <h2 id="winner-text"></h2>
-        <p>REINICIA EL NAVEGADOR PARA NUEVA PARTIDA</p>
+        <p>ESPERANDO REINICIO DESDE EL MÓVIL...</p>
     </div>
 
     <script>
@@ -63,6 +61,7 @@
         }
 
         function initBoard() {
+            board.innerHTML = '';
             personajes.forEach(p => {
                 const div = document.createElement('div');
                 div.className = 'char-card';
@@ -102,6 +101,17 @@
             document.getElementById('victory-overlay').style.display = 'flex';
             document.getElementById('winner-text').textContent = `${data.player} ADIVINÓ A: ${data.character}`;
             playBeep(600, 0.5);
+        });
+
+        // LÓGICA DE REINICIO EN TV
+        socket.on('reset-game', () => {
+            clearInterval(timerInterval);
+            document.getElementById('timer').textContent = "00:00";
+            document.getElementById('victory-overlay').style.display = 'none';
+            initBoard();
+            const p = document.createElement('p');
+            p.textContent = `> SISTEMA REINICIADO POR EL CLIENTE.`;
+            log.appendChild(p);
         });
 
         socket.on('update-status', (msg) => {
