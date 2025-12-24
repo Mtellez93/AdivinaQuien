@@ -3,83 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TERMINAL REMOTA</title>
+    <title>TERMINAL CLIENTE</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        /* Estilos específicos para celular */
-        .mobile-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr; /* 2 columnas en celular */
-            gap: 10px;
-            padding: 10px;
-        }
-        .btn-char {
-            background: #000;
-            color: #0f0;
-            border: 1px solid #0f0;
-            padding: 15px 5px;
-            font-family: 'Courier New', monospace;
-            text-transform: uppercase;
-            font-size: 0.8em;
-        }
-        .btn-char.off {
-            border-color: #440000;
-            color: #440000;
-            text-decoration: line-through;
-        }
-        .status-bar {
-            background: #0f0;
-            color: #000;
-            padding: 5px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 10px;
-        }
+        body { padding: 10px; overflow-y: auto; }
+        .mobile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
+        button { background: #000; color: #0f0; border: 1px solid #0f0; padding: 15px 5px; font-family: monospace; }
+        .btn-win { background: #ff3131; color: #000; font-weight: bold; grid-column: span 2; margin-bottom: 10px; }
+        .btn-start { background: #0f0; color: #000; font-weight: bold; grid-column: span 2; margin-bottom: 10px; }
+        .off { border-color: #400; color: #400; text-decoration: line-through; }
     </style>
 </head>
 <body>
-    <div class="status-bar" id="role-tag">CONECTANDO AL SERVIDOR...</div>
+    <div id="role-tag" style="background:#0f0; color:#000; text-align:center; padding:5px; font-weight:bold;">CONECTANDO...</div>
     
-    <div id="game-controls">
-        <div class="mobile-grid" id="button-container">
-            </div>
-    </div>
+    <div class="mobile-grid">
+        <button class="btn-start" onclick="socket.emit('start-game')">INICIAR PARTIDA</button>
+        <button class="btn-win" onclick="win()">¡LO ADIVINÉ!</button>
+        </div>
 
     <script>
         const socket = io();
-        const container = document.getElementById('button-container');
         const roleTag = document.getElementById('role-tag');
+        const grid = document.querySelector('.mobile-grid');
 
         const personajes = [
             { id: 1, nombre: "MICKEY MOUSE" }, { id: 2, nombre: "ELSA" },
             { id: 3, nombre: "WOODY" }, { id: 4, nombre: "STITCH" },
-            { id: 5, nombre: "SIMBA" }, { id: 6, nombre: "MALÉFICA" },
+            { id: 5, nombre: "SIMBA" }, { id: 6, nombre: "MALEFICA" },
             { id: 7, nombre: "BUZZ LIGHTYEAR" }, { id: 8, nombre: "MOANA" },
             { id: 9, nombre: "GOOFY" }, { id: 10, nombre: "DONALD" },
-            { id: 11, nombre: "MULAN" }, { id: 12, nombre: "PETER PAN" }
+            { id: 11, nombre: "MULAN" }, { id: 12, nombre: "PETER PAN" },
+            { id: 13, nombre: "RAPUNZEL" }, { id: 14, nombre: "ALADDIN" },
+            { id: 15, nombre: "OLAF" }, { id: 16, nombre: "CENICIENTA" }
         ];
 
-        // Registrar como móvil
         socket.emit('register-device', 'mobile');
+        socket.on('assign-role', role => roleTag.textContent = `SESIÓN: ${role}`);
 
-        socket.on('assign-role', (role) => {
-            roleTag.textContent = `ACCESO CONCEDIDO: ${role}`;
-        });
-
-        // Crear botones
         personajes.forEach(p => {
-            const btn = document.createElement('button');
-            btn.className = 'btn-char';
-            btn.textContent = p.nombre;
-            btn.onclick = () => {
-                // Alternar estado visual en el celular
-                btn.classList.toggle('off');
-                // Enviar señal a la TV
-                socket.emit('discard-character', { id: p.id });
-            };
-            container.appendChild(btn);
+            const b = document.createElement('button');
+            b.textContent = p.nombre;
+            b.onclick = () => { b.classList.toggle('off'); socket.emit('discard-character', {id: p.id}); };
+            grid.appendChild(b);
         });
+
+        function win() {
+            const p = prompt("¿Quién es?");
+            if(p) socket.emit('declare-winner', { player: roleTag.textContent, character: p.toUpperCase() });
+        }
     </script>
 </body>
 </html>
