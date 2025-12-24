@@ -2,36 +2,43 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DISNEY SERVER TERMINAL</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body class="terminal-body">
     <div class="scanline"></div>
-    
     <div class="main-wrapper">
         <header>
-            <h1>> SYSTEM STATUS: <span class="blink">ONLINE</span></h1>
-            <p>DATABASE: DISNEY_RECORDS_V2.0 | SECURE_CONNECTION</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>> SYSTEM STATUS: <span class="blink">ONLINE</span></h1>
+                    <p>DATABASE: DISNEY_RECORDS_V2.0</p>
+                </div>
+                <div id="timer">00:00</div>
+            </div>
             <hr>
         </header>
 
         <div class="grid-terminal" id="board"></div>
 
         <div id="log-console">
-            <p>> SISTEMA INICIALIZADO...</p>
-            <p>> ESPERANDO CONEXIÓN DE DISPOSITIVOS MÓVILES...</p>
+            <p>> ESPERANDO CONEXIÓN DE DISPOSITIVOS...</p>
         </div>
     </div>
 
+    <div id="victory-overlay">
+        <h1 class="blink">MISIÓN CUMPLIDA</h1>
+        <h2 id="winner-text"></h2>
+        <p>REINICIA EL NAVEGADOR PARA NUEVA PARTIDA</p>
+    </div>
+
     <script>
-        // 1. Configuración Inicial
         const socket = io();
         const board = document.getElementById('board');
         const log = document.getElementById('log-console');
+        let timerInterval;
 
-        // 2. Base de Datos de Personajes
         const personajes = [
             { id: 1, nombre: "MICKEY MOUSE" }, { id: 2, nombre: "ELSA" },
             { id: 3, nombre: "WOODY" }, { id: 4, nombre: "STITCH" },
@@ -43,63 +50,67 @@
             { id: 15, nombre: "OLAF" }, { id: 16, nombre: "CENICIENTA" }
         ];
 
-        // 3. Función para generar Sonido Retro
-        function playBeep() {
+        function playBeep(freq = 440, dur = 0.1) {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                oscillator.type = 'square';
-                oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
-                gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.1);
-            } catch(e) { console.log("Audio bloqueado"); }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.type = 'square'; osc.frequency.value = freq;
+                gain.gain.value = 0.05;
+                osc.start(); osc.stop(audioCtx.currentTime + dur);
+            } catch(e) {}
         }
 
-        // 4. Dibujar el Tablero al Cargar
         function initBoard() {
-            board.innerHTML = ''; // Limpiar antes de llenar
             personajes.forEach(p => {
                 const div = document.createElement('div');
                 div.className = 'char-card';
                 div.id = `char-${p.id}`;
-                div.innerHTML = `
-                    <div class="id-tag">ID_${p.id}</div>
-                    <div class="name">${p.nombre}</div>
-                `;
+                div.innerHTML = `<div class="id-tag">ID_${p.id}</div><div class="name">${p.nombre}</div>`;
                 board.appendChild(div);
             });
-            addLog("TABLERO DESPLEGADO CON ÉXITO.");
         }
 
-        // 5. Función para escribir en la consola
-        function addLog(msg) {
-            const p = document.createElement('p');
-            p.textContent = `> ${msg}`;
-            log.appendChild(p);
-            log.scrollTop = log.scrollHeight;
-        }
-
-        // 6. Eventos de Socket
         socket.emit('register-device', 'tv');
 
-        socket.on('update-status', (msg) => {
-            addLog(msg);
+        socket.on('start-timer', () => {
+            let sec = 0;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                sec++;
+                let m = Math.floor(sec/60).toString().padStart(2,'0');
+                let s = (sec%60).toString().padStart(2,'0');
+                document.getElementById('timer').textContent = `${m}:${s}`;
+            }, 1000);
         });
 
         socket.on('visual-discard', (data) => {
             const card = document.getElementById(`char-${data.id}`);
             if(card && !card.classList.contains('eliminated')) {
                 card.classList.add('eliminated');
-                playBeep();
-                addLog(`SUJETO ${data.id} ELIMINADO DEL RASTREO.`);
+                playBeep(300, 0.1);
+                const p = document.createElement('p');
+                p.textContent = `> ALERTA: SUJETO ${data.id} ELIMINADO.`;
+                log.appendChild(p);
+                log.scrollTop = log.scrollHeight;
             }
         });
 
-        // Iniciar el tablero
+        socket.on('game-over', (data) => {
+            clearInterval(timerInterval);
+            document.getElementById('victory-overlay').style.display = 'flex';
+            document.getElementById('winner-text').textContent = `${data.player} ADIVINÓ A: ${data.character}`;
+            playBeep(600, 0.5);
+        });
+
+        socket.on('update-status', (msg) => {
+            const p = document.createElement('p');
+            p.textContent = `> ${msg}`;
+            log.appendChild(p);
+            log.scrollTop = log.scrollHeight;
+        });
+
         initBoard();
     </script>
 </body>
