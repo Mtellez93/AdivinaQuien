@@ -13,17 +13,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 let players = {};
 let currentMatch = { "JUGADOR 1": "", "JUGADOR 2": "" };
 
-// URL de Google Sheets en formato CSV
+// URL de Google Sheets en formato CSV (Usando export para mayor estabilidad)
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/1jP73m0cs5RuxM_jNjsDH_tiwpdIH5zc6fM416NOIdHw/export?format=csv";
 
 async function getCharactersFromSheet() {
     try {
+        // Cachebuster para obtener siempre datos frescos
         const response = await axios.get(`${SHEET_URL}&cachebuster=${Date.now()}`);
         const content = response.data.replace(/\r/g, "");
         const rows = content.split('\n').slice(1); // Omitir cabecera
 
         const items = rows.map(row => {
-            // Divide por comas que no estén dentro de comillas
+            // Regex para separar por comas respetando contenidos entre comillas
             const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             if (cols.length >= 3) {
                 return {
@@ -52,52 +53,71 @@ io.on('connection', (socket) => {
                          (Object.values(players).includes('JUGADOR 1') ? 'JUGADOR 2' : 'JUGADOR 1') : 'ESPECTADOR';
             players[socket.id] = role;
             socket.emit('assign-role', role);
-            console.log(`> Conectado: ${role}`);
+            console.log(`> Dispositivo registrado como: ${role}`);
         }
     });
 
     socket.on('start-game', async () => {
-        console.log("> Iniciando nueva partida...");
+        console.log("> Iniciando nueva partida con lógica de asignación cruzada...");
         const allChars = await getCharactersFromSheet();
         
         if (allChars.length < 16) {
-            console.log("> Error: Lista de personajes insuficiente.");
+            console.log("> Error: Se necesitan al menos 16 personajes en el Excel.");
             return;
         }
 
-        // Barajar y repartir
+        // 1. Generar tableros aleatorios para cada jugador
         const p1Board = [...allChars].sort(() => 0.5 - Math.random()).slice(0, 16);
         const p2Board = [...allChars].sort(() => 0.5 - Math.random()).slice(0, 16);
 
-        const p1Secret = p1Board[Math.floor(Math.random() * 16)].nombre;
-        const p2Secret = p2Board[Math.floor(Math.random() * 16)].nombre;
+        // 2. LÓGICA DE ASIGNACIÓN CRUZADA:
+        // El personaje que J1 debe adivinar se elige del tablero de J2.
+        // El personaje que J2 debe adivinar se elige del tablero de J1.
+        const p1Target = p2Board[Math.floor(Math.random() * 16)].nombre;
+        const p2Target = p1Board[Math.floor(Math.random() * 16)].nombre;
 
-        currentMatch["JUGADOR 1"] = p1Secret;
-        currentMatch["JUGADOR 2"] = p2Secret;
+        // Guardamos en el servidor quién debe adivinar a quién
+        currentMatch["JUGADOR 1"] = p1Target; 
+        currentMatch["JUGADOR 2"] = p2Target; 
 
-        // Notificar a los móviles
+        // 3. Notificar a los móviles
         for (const [id, role] of Object.entries(players)) {
-            if (role === 'JUGADOR 1') io.to(id).emit('game-setup', { board: p1Board, secret: p1Secret });
-            if (role === 'JUGADOR 2') io.to(id).emit('game-setup', { board: p2Board, secret: p2Secret });
+            if (role === 'JUGADOR 1') {
+                // J1 recibe su tablero y el personaje que EL RIVAL debe adivinar (p2Target)
+                io.to(id).emit('game-setup', { board: p1Board, secret: p2Target });
+            }
+            if (role === 'JUGADOR 2') {
+                // J2 recibe su tablero y el personaje que EL RIVAL debe adivinar (p1Target)
+                io.to(id).emit('game-setup', { board: p2Board, secret: p1Target });
+            }
         }
 
-        // Notificar a la TV
+        // 4. Notificar a la TV para dibujar los tableros
         io.to('tv-room').emit('tv-setup', { p1Board, p2Board });
         io.emit('start-timer');
     });
 
-    socket.on('discard-character', (data) => io.to('tv-room').emit('visual-discard', data));
+    socket.on('discard-character', (data) => {
+        io.to('tv-room').emit('visual-discard', data);
+    });
 
     socket.on('declare-winner', (data) => {
-        const rivalRole = data.player === 'JUGADOR 1' ? 'JUGADOR 2' : 'JUGADOR 1';
-        if (data.character.trim().toUpperCase() === currentMatch[rivalRole].toUpperCase()) {
-            io.emit('game-over', { player: data.player, character: currentMatch[rivalRole] });
+        const myRole = data.player;
+        const targetToGuess = currentMatch[myRole];
+
+        if (data.character.trim().toUpperCase() === targetToGuess.toUpperCase()) {
+            io.emit('game-over', { 
+                player: myRole, 
+                character: targetToGuess 
+            });
         } else {
-            socket.emit('guess-error', `ERROR: EL RIVAL NO TIENE A ${data.character}`);
+            socket.emit('guess-error', `EL PERSONAJE "${data.character}" NO ES EL OBJETIVO.`);
         }
     });
 
-    socket.on('request-reset', () => io.emit('reset-game'));
+    socket.on('request-reset', () => {
+        io.emit('reset-game');
+    });
 
     socket.on('disconnect', () => {
         delete players[socket.id];
@@ -105,4 +125,6 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => console.log(`Servidor Disney activo en puerto ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`>>> SERVIDOR ACTIVO EN PUERTO ${PORT} <<<`);
+});
