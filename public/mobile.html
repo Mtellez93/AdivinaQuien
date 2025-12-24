@@ -8,26 +8,30 @@
     <script src="/socket.io/socket.io.js"></script>
     <style>
         body { padding: 10px; overflow-y: auto; }
-        .mobile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 15px; }
-        button { background: #000; color: #0f0; border: 1px solid #0f0; padding: 15px 5px; font-family: monospace; font-size: 0.75rem; }
+        .mobile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        button { background: #000; color: #0f0; border: 1px solid #0f0; padding: 15px 5px; font-family: monospace; font-size: 0.7rem; }
         .btn-win { background: #ff3131; color: #000; font-weight: bold; }
         .btn-start { background: #0f0; color: #000; font-weight: bold; }
-        .btn-reset { background: #0044ff; color: #fff; font-weight: bold; grid-column: span 2; border: 1px solid #fff; }
+        .btn-reset { background: #0044ff; color: #fff; font-weight: bold; grid-column: span 2; }
+        .secret-box { background: #222; border: 2px dashed #0f0; padding: 10px; text-align: center; margin: 10px 0; font-weight: bold; color: #fff; }
         .off { border-color: #400; color: #400; text-decoration: line-through; }
     </style>
 </head>
 <body>
     <div id="role-tag" style="background:#0f0; color:#000; text-align:center; padding:5px; font-weight:bold;">CONECTANDO...</div>
     
+    <div id="secret-area" class="secret-box">TU PERSONAJE: ??? (DALE A INICIAR)</div>
+
     <div class="mobile-grid">
-        <button class="btn-start" onclick="socket.emit('start-game')">INICIAR REGLOJ</button>
+        <button class="btn-start" onclick="socket.emit('start-game')">INICIAR PARTIDA</button>
         <button class="btn-win" onclick="win()">¡LO ADIVINÉ!</button>
-        <button class="btn-reset" onclick="socket.emit('request-reset')">NUEVA PARTIDA (RESET)</button>
-        </div>
+        <button class="btn-reset" onclick="socket.emit('request-reset')">NUEVA PARTIDA</button>
+    </div>
 
     <script>
         const socket = io();
         const roleTag = document.getElementById('role-tag');
+        const secretArea = document.getElementById('secret-area');
         const grid = document.querySelector('.mobile-grid');
 
         const personajes = [
@@ -44,8 +48,14 @@
         socket.emit('register-device', 'mobile');
         socket.on('assign-role', role => roleTag.textContent = `SESIÓN: ${role}`);
 
+        // Recibir personaje secreto
+        socket.on('secret-character', (charName) => {
+            secretArea.textContent = `ERES: ${charName}`;
+            secretArea.style.borderColor = "#0f0";
+            secretArea.style.color = "#0f0";
+        });
+
         function renderButtons() {
-            // Eliminar botones viejos de personajes si existen
             document.querySelectorAll('.btn-char').forEach(b => b.remove());
             personajes.forEach(p => {
                 const b = document.createElement('button');
@@ -57,12 +67,13 @@
         }
 
         function win() {
-            const p = prompt("¿Quién es?");
+            const p = prompt("¿Quién es el personaje de tu oponente?");
             if(p) socket.emit('declare-winner', { player: roleTag.textContent, character: p.toUpperCase() });
         }
 
-        // REINICIO EN EL MÓVIL
         socket.on('reset-game', () => {
+            secretArea.textContent = "TU PERSONAJE: ??? (DALE A INICIAR)";
+            secretArea.style.color = "#fff";
             renderButtons();
         });
 
