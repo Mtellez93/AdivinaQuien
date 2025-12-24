@@ -1,7 +1,7 @@
-/* --- VARIABLES DE COLOR --- */
+/* --- CONFIGURACIÓN DE COLORES Y BASE --- */
 :root { 
-    --p1-color: #00f2ff; /* Cian/Verde Neón */
-    --p2-color: #ffaa00; /* Ámbar/Naranja Neón */
+    --p1-color: #00f2ff; /* Cian para Jugador 1 */
+    --p2-color: #ffaa00; /* Ámbar para Jugador 2 */
     --red: #ff3131; 
     --bg: #05080a; 
 }
@@ -11,8 +11,9 @@ body {
     color: #fff; 
     font-family: 'Courier New', monospace; 
     margin: 0; 
+    padding: 0;
     overflow: hidden; 
-    text-shadow: 0 0 5px rgba(255,255,255,0.2);
+    text-shadow: 0 0 5px rgba(255,255,255,0.1);
 }
 
 .main-wrapper { 
@@ -29,7 +30,7 @@ header {
     align-items: center;
     border-bottom: 2px solid #333; 
     padding-bottom: 10px; 
-    margin-bottom: 10px; 
+    margin-bottom: 15px; 
 }
 
 #timer { 
@@ -38,12 +39,12 @@ header {
     font-weight: bold;
     letter-spacing: 3px;
     background: rgba(255,0,0,0.1);
-    padding: 5px 15px;
-    border-radius: 4px;
+    padding: 5px 20px;
     border: 1px solid var(--red);
+    border-radius: 4px;
 }
 
-/* --- DISEÑO DUAL REFORZADO --- */
+/* --- DISEÑO DE PANTALLA DUAL --- */
 .dual-screen { 
     display: flex; 
     flex-grow: 1; 
@@ -58,110 +59,133 @@ header {
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.02);
     overflow: hidden;
+    transition: all 0.5s ease;
 }
 
-/* Estilos específicos por jugador */
 #board-JUGADOR-1-parent { border: 2px solid var(--p1-color); box-shadow: 0 0 15px rgba(0,242,255,0.1); }
 #board-JUGADOR-2-parent { border: 2px solid var(--p2-color); box-shadow: 0 0 15px rgba(255,170,0,0.1); }
 
 .player-header { 
     text-align: center; 
     font-weight: bold; 
-    padding: 8px; 
-    font-size: 1.1rem; 
-    letter-spacing: 2px;
+    padding: 10px; 
+    font-size: 1.2rem; 
+    letter-spacing: 3px;
+    text-transform: uppercase;
 }
 
 .p1-header { background: var(--p1-color); color: #000; }
 .p2-header { background: var(--p2-color); color: #000; }
 
-/* --- REJILLA Y TARJETAS --- */
+/* --- REJILLA Y TARJETAS (SIN REF_) --- */
 .grid-terminal { 
     display: grid; 
     grid-template-columns: repeat(4, 1fr); 
-    gap: 8px; 
-    padding: 10px; 
+    gap: 10px; 
+    padding: 15px; 
     overflow-y: auto; 
 }
 
 .char-card { 
-    background: rgba(0, 0, 0, 0.6); 
+    background: rgba(0, 0, 0, 0.7); 
     border: 1px solid rgba(255,255,255,0.1);
-    padding: 6px; 
+    padding: 10px; 
     text-align: center; 
-    position: relative; 
     display: flex; 
     flex-direction: column; 
     align-items: center;
+    justify-content: center;
+    min-height: 130px; /* Espacio extra para la imagen */
     transition: all 0.3s ease;
+    position: relative;
 }
 
-/* Bordes de tarjetas según jugador */
-#board-JUGADOR-1 .char-card { border-color: rgba(0,242,255,0.3); }
-#board-JUGADOR-2 .char-card { border-color: rgba(255,170,0,0.3); }
+#board-JUGADOR-1 .char-card { border-color: rgba(0,242,255,0.2); }
+#board-JUGADOR-2 .char-card { border-color: rgba(255,170,0,0.2); }
 
+/* CONTENEDOR DE IMAGEN MAXIMIZADO */
 .img-container {
     width: 100%;
-    height: 80px; 
-    margin: 5px 0;
+    height: 100px; /* Aumentado para mejor visibilidad */
+    margin-bottom: 8px;
     background: #000;
-    border-radius: 2px;
-    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
 }
 
 .img-container img {
-    width: 100%;
-    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
     object-fit: contain;
-}
-
-/* --- EFECTO ELIMINADO --- */
-.char-card.eliminated { 
-    border-color: var(--red) !important; 
-    opacity: 0.15; 
-    filter: grayscale(1);
-    transform: scale(0.95);
-}
-
-.char-card.eliminated::after {
-    content: "ELIMINATED";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-20deg);
-    color: var(--red);
-    font-weight: bold;
-    font-size: 0.7rem;
-    border: 1px solid var(--red);
-    padding: 2px;
-    background: rgba(0,0,0,0.8);
+    filter: brightness(1.1) contrast(1.1);
 }
 
 .name { 
-    font-size: 0.7rem; 
+    font-size: 0.8rem; 
     font-weight: bold; 
-    margin-top: 5px;
-    color: #eee;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0;
 }
 
-/* --- CONSOLA --- */
+/* --- ESTADO ELIMINADO --- */
+.char-card.eliminated { 
+    border-color: var(--red) !important; 
+    opacity: 0.15; 
+    filter: grayscale(1) blur(1px);
+    transform: scale(0.92);
+}
+
+.char-card.eliminated::after {
+    content: "X";
+    position: absolute;
+    font-size: 4rem;
+    color: var(--red);
+    font-weight: bold;
+    opacity: 0.5;
+}
+
+/* --- CONSOLA Y LOGS --- */
 #log-console { 
-    height: 80px; 
-    border-top: 2px solid #333; 
+    height: 70px; 
+    border-top: 1px solid #333; 
     padding: 10px; 
     overflow-y: auto; 
     font-size: 0.8rem; 
-    background: #000; 
-    color: #888;
+    background: rgba(0,0,0,0.5); 
+    color: #666;
 }
 
-/* --- SCANLINES Y EFECTOS --- */
+/* --- PANTALLA DE VICTORIA --- */
+#victory-overlay { 
+    display: none; 
+    position: fixed; 
+    top: 0; left: 0; width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.95); 
+    z-index: 1000; 
+    flex-direction: column; 
+    justify-content: center; 
+    align-items: center; 
+    text-align: center;
+}
+
+#victory-overlay h1 { font-size: 5rem; color: var(--p1-color); margin: 0; }
+#victory-overlay h2 { font-size: 2rem; border: 2px solid #fff; padding: 15px 40px; margin: 20px 0; }
+
+/* --- EFECTOS VISUALES --- */
+.blink { animation: b 1.5s infinite; }
+@keyframes b { 50% { opacity: 0; } }
+
 .scanline { 
     position: fixed; 
     top: 0; left: 0; width: 100%; height: 100%;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
-                linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-    z-index: 2;
-    background-size: 100% 4px, 3px 100%;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    z-index: 2000;
+    background-size: 100% 3px, 2px 100%;
     pointer-events: none;
 }
