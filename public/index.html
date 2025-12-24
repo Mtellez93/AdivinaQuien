@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>DISNEY SERVER TERMINAL</title>
+    <title>DISNEY MULTI-TERMINAL</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -11,71 +11,67 @@
     <div class="main-wrapper">
         <header>
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1>> SYSTEM STATUS: <span class="blink">ONLINE</span></h1>
-                    <p>DATABASE: DISNEY_RECORDS_V2.0</p>
-                </div>
+                <h1>> SYSTEM STATUS: <span class="blink">DUAL_MODE</span></h1>
                 <div id="timer">00:00</div>
             </div>
-            <hr>
         </header>
-        <div class="grid-terminal" id="board"></div>
+
+        <div class="dual-screen">
+            <div class="player-section">
+                <h2>[ JUGADOR 1 ]</h2>
+                <div class="grid-terminal" id="board-JUGADOR-1"></div>
+            </div>
+            <div class="player-section">
+                <h2>[ JUGADOR 2 ]</h2>
+                <div class="grid-terminal" id="board-JUGADOR-2"></div>
+            </div>
+        </div>
+
         <div id="log-console">
-            <p>> ESPERANDO JUGADORES...</p>
+            <p>> ESPERANDO JUGADORES PARA DIVIDIR PANTALLA...</p>
         </div>
     </div>
 
     <div id="victory-overlay">
         <h1 class="blink">MISIÓN CUMPLIDA</h1>
         <h2 id="winner-text"></h2>
-        <p>PRESIONEN 'NUEVA PARTIDA' EN EL MÓVIL</p>
+        <p>PRESIONEN 'NUEVA PARTIDA' PARA REINICIAR</p>
     </div>
 
     <script>
         const socket = io();
-        const board = document.getElementById('board');
         const log = document.getElementById('log-console');
         let timerInterval;
 
         const personajes = [
-            { id: 1, nombre: "MICKEY MOUSE" }, { id: 2, nombre: "ELSA" },
+            { id: 1, nombre: "MICKEY" }, { id: 2, nombre: "ELSA" },
             { id: 3, nombre: "WOODY" }, { id: 4, nombre: "STITCH" },
             { id: 5, nombre: "SIMBA" }, { id: 6, nombre: "MALEFICA" },
-            { id: 7, nombre: "BUZZ LIGHTYEAR" }, { id: 8, nombre: "MOANA" },
+            { id: 7, nombre: "BUZZ" }, { id: 8, nombre: "MOANA" },
             { id: 9, nombre: "GOOFY" }, { id: 10, nombre: "DONALD" },
             { id: 11, nombre: "MULAN" }, { id: 12, nombre: "PETER PAN" },
             { id: 13, nombre: "RAPUNZEL" }, { id: 14, nombre: "ALADDIN" },
             { id: 15, nombre: "OLAF" }, { id: 16, nombre: "CENICIENTA" }
         ];
 
-        function playBeep(freq = 440, dur = 0.1) {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.type = 'square'; osc.frequency.value = freq;
-                gain.gain.value = 0.05;
-                osc.start(); osc.stop(audioCtx.currentTime + dur);
-            } catch(e) {}
-        }
-
-        function initBoard() {
-            board.innerHTML = '';
-            personajes.forEach(p => {
-                const div = document.createElement('div');
-                div.className = 'char-card';
-                div.id = `char-${p.id}`;
-                div.innerHTML = `<div class="id-tag">ID_${p.id}</div><div class="name">${p.nombre}</div>`;
-                board.appendChild(div);
+        function initBoards() {
+            ['JUGADOR-1', 'JUGADOR-2'].forEach(role => {
+                const board = document.getElementById(`board-${role}`);
+                board.innerHTML = '';
+                personajes.forEach(p => {
+                    const div = document.createElement('div');
+                    div.className = 'char-card';
+                    div.id = `char-${role}-${p.id}`;
+                    div.innerHTML = `<div class="id-tag">${p.id}</div><div class="name">${p.nombre}</div>`;
+                    board.appendChild(div);
+                });
             });
         }
 
         socket.emit('register-device', 'tv');
 
         socket.on('start-timer', () => {
-            let sec = 0;
-            clearInterval(timerInterval);
+            let sec = 0; clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 sec++;
                 let m = Math.floor(sec/60).toString().padStart(2,'0');
@@ -85,12 +81,13 @@
         });
 
         socket.on('visual-discard', (data) => {
-            const card = document.getElementById(`char-${data.id}`);
-            if(card && !card.classList.contains('eliminated')) {
-                card.classList.add('eliminated');
-                playBeep(300, 0.1);
+            // El role viene como "JUGADOR 1", lo convertimos a "JUGADOR-1" para el ID
+            const roleId = data.role.replace(' ', '-');
+            const card = document.getElementById(`char-${roleId}-${data.id}`);
+            if(card) {
+                card.classList.toggle('eliminated');
                 const p = document.createElement('p');
-                p.textContent = `> ALERTA: SUJETO ${data.id} ELIMINADO.`;
+                p.textContent = `> ${data.role}: ACTUALIZÓ REGISTRO ${data.id}.`;
                 log.appendChild(p);
                 log.scrollTop = log.scrollHeight;
             }
@@ -99,26 +96,17 @@
         socket.on('game-over', (data) => {
             clearInterval(timerInterval);
             document.getElementById('victory-overlay').style.display = 'flex';
-            document.getElementById('winner-text').textContent = `${data.player} ADIVINÓ A: ${data.character}`;
-            playBeep(600, 0.5);
+            document.getElementById('winner-text').textContent = `${data.player} GANÓ!`;
         });
 
         socket.on('reset-game', () => {
             clearInterval(timerInterval);
             document.getElementById('timer').textContent = "00:00";
             document.getElementById('victory-overlay').style.display = 'none';
-            log.innerHTML = '<p>> SISTEMA REINICIADO.</p>';
-            initBoard();
+            initBoards();
         });
 
-        socket.on('update-status', (msg) => {
-            const p = document.createElement('p');
-            p.textContent = `> ${msg}`;
-            log.appendChild(p);
-            log.scrollTop = log.scrollHeight;
-        });
-
-        initBoard();
+        initBoards();
     </script>
 </body>
 </html>
