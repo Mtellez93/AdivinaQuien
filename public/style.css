@@ -1,4 +1,9 @@
-:root { --green: #00ff41; --red: #ff3131; --bg: #000; }
+/* --- CONFIGURACIÓN DE COLORES Y BASE --- */
+:root { 
+    --green: #00ff41; 
+    --red: #ff3131; 
+    --bg: #000; 
+}
 
 body { 
     background: var(--bg); 
@@ -28,7 +33,7 @@ header {
     padding: 0 10px; 
 }
 
-/* DISEÑO DUAL */
+/* --- DISEÑO DE PANTALLA DIVIDIDA --- */
 .dual-screen { 
     display: flex; 
     flex-grow: 1; 
@@ -41,7 +46,7 @@ header {
     display: flex; 
     flex-direction: column; 
     border: 1px solid rgba(0, 255, 65, 0.2); 
-    background: rgba(0, 20, 0, 0.2);
+    background: rgba(0, 20, 0, 0.1);
 }
 
 .player-header { 
@@ -53,7 +58,7 @@ header {
     font-size: 0.9rem; 
 }
 
-/* REJILLA AJUSTADA */
+/* --- REJILLA DE PERSONAJES --- */
 .grid-terminal { 
     display: grid; 
     grid-template-columns: repeat(4, 1fr); 
@@ -62,7 +67,6 @@ header {
     overflow-y: auto; 
 }
 
-/* TARJETA DE PERSONAJE */
 .char-card { 
     border: 1px solid var(--green); 
     padding: 4px; 
@@ -73,34 +77,35 @@ header {
     flex-direction: column; 
     align-items: center;
     justify-content: space-between;
-    min-height: 100px; /* Altura mínima para que todas sean iguales */
+    min-height: 110px;
 }
 
-/* CONTENEDOR DE IMAGEN CORREGIDO */
+/* --- CONTENEDOR DE IMAGEN (CORRECCIÓN DE REDIMENSIÓN) --- */
 .img-container {
     width: 100%;
-    height: 65px; /* Altura fija para la foto */
+    height: 75px; /* Altura controlada para que quepan 4 filas bien */
     margin: 4px 0;
     overflow: hidden;
-    border: 1px solid rgba(0, 255, 65, 0.3);
+    background: #000; /* Fondo negro para rellenar si la imagen es vertical */
+    border: 1px solid rgba(0, 255, 65, 0.1);
 }
 
 .img-container img {
     width: 100%;
     height: 100%;
-    object-fit: cover; /* Recorta la imagen para que llene el cuadro sin deformarse */
-    object-position: center; /* Se asegura de que la cara del personaje sea el centro */
-    filter: sepia(0.8) brightness(1.1) contrast(1.2);
+    object-fit: contain; /* Muestra la imagen completa sin recortarla */
+    filter: sepia(0.3) brightness(1.2) contrast(1.1); /* Toque retro suave */
 }
 
+/* --- ESTADO ELIMINADO --- */
 .char-card.eliminated { 
     border-color: var(--red); 
     color: var(--red); 
-    opacity: 0.15; /* Mucho más transparente al ser eliminado */
+    opacity: 0.2; 
 }
 
 .char-card.eliminated img { 
-    filter: grayscale(1) brightness(0.3); 
+    filter: grayscale(1) brightness(0.2); 
 }
 
 .id-tag { 
@@ -112,26 +117,27 @@ header {
 }
 
 .name { 
-    font-size: 0.55rem; 
+    font-size: 0.6rem; 
     font-weight: bold; 
     text-transform: uppercase;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     width: 100%;
 }
 
-/* CONSOLA Y OTROS */
+/* --- CONSOLA DE MENSAJES --- */
 #log-console { 
     height: 60px; 
     border: 1px solid var(--green); 
     padding: 5px; 
     overflow-y: auto; 
-    font-size: 0.65rem; 
+    font-size: 0.7rem; 
     background: #050505; 
     margin-top: 5px; 
+    color: var(--green);
 }
 
+/* --- PANTALLA DE VICTORIA --- */
 #victory-overlay { 
     display: none; 
     position: fixed; 
@@ -144,10 +150,11 @@ header {
     flex-direction: column; 
     justify-content: center; 
     align-items: center; 
-    border: 5px double var(--green); 
+    border: 10px double var(--green); 
     text-align: center; 
 }
 
+/* --- EFECTOS VISUALES --- */
 .blink { animation: b 1.2s infinite; }
 @keyframes b { 50% { opacity: 0; } }
 
@@ -156,9 +163,9 @@ header {
     top: 0; 
     width: 100%; 
     height: 2px; 
-    background: rgba(0,255,0,0.05); 
+    background: rgba(0,255,0,0.03); 
     z-index: 1001; 
     pointer-events: none; 
-    animation: s 3s linear infinite; 
+    animation: s 4s linear infinite; 
 }
 @keyframes s { 0% { top: 0; } 100% { top: 100%; } }
