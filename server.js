@@ -10,6 +10,11 @@ const io = new Server(server);
 app.use(express.static(path.join(__dirname, 'public')));
 
 let players = {};
+const personajes = [
+    "MICKEY MOUSE", "ELSA", "WOODY", "STITCH", "SIMBA", "MALEFICA", 
+    "BUZZ LIGHTYEAR", "MOANA", "GOOFY", "DONALD", "MULAN", "PETER PAN", 
+    "RAPUNZEL", "ALADDIN", "OLAF", "CENICIENTA"
+];
 
 io.on('connection', (socket) => {
     socket.on('register-device', (type) => {
@@ -25,8 +30,18 @@ io.on('connection', (socket) => {
     });
 
     socket.on('start-game', () => {
+        // Elegir personajes secretos al azar
+        const p1Char = personajes[Math.floor(Math.random() * personajes.length)];
+        const p2Char = personajes[Math.floor(Math.random() * personajes.length)];
+
+        // Enviar a cada jugador su personaje de forma privada
+        for (const [id, role] of Object.entries(players)) {
+            if (role === 'JUGADOR 1') io.to(id).emit('secret-character', p1Char);
+            if (role === 'JUGADOR 2') io.to(id).emit('secret-character', p2Char);
+        }
+
         io.emit('start-timer');
-        io.to('tv-room').emit('update-status', "CRONÓMETRO INICIADO.");
+        io.to('tv-room').emit('update-status', "¡PERSONAJES ASIGNADOS! REVISEN SUS CELULARES.");
     });
 
     socket.on('discard-character', (data) => {
@@ -37,7 +52,6 @@ io.on('connection', (socket) => {
         io.emit('game-over', data);
     });
 
-    // NUEVO: Evento para reiniciar todo
     socket.on('request-reset', () => {
         io.emit('reset-game');
     });
@@ -49,5 +63,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor activo en puerto ${PORT}`);
+    console.log(`Servidor activo.`);
 });
