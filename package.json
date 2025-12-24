@@ -1,14 +1,19 @@
 {
-  "name": "disney-guess-who",
+  "name": "disney-tactical-guess",
   "version": "1.0.0",
-  "description": "Juego de Adivina Quien estilo terminal para TV y Celular",
+  "description": "Juego Táctico de Adivinanza con Google Sheets",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "axios": "^1.6.0",
     "express": "^4.18.2",
     "socket.io": "^4.7.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   },
   "author": "",
   "license": "ISC"
