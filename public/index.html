@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>DISNEY MULTI-TERMINAL</title>
+    <title>DISNEY DUAL TERMINAL</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -11,31 +11,31 @@
     <div class="main-wrapper">
         <header>
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h1>> SYSTEM STATUS: <span class="blink">DUAL_MODE</span></h1>
+                <h1>> SYSTEM: <span class="blink">DUAL_TRACKING</span></h1>
                 <div id="timer">00:00</div>
             </div>
         </header>
 
         <div class="dual-screen">
             <div class="player-section">
-                <h2>[ JUGADOR 1 ]</h2>
+                <div class="player-header">JUGADOR 1</div>
                 <div class="grid-terminal" id="board-JUGADOR-1"></div>
             </div>
             <div class="player-section">
-                <h2>[ JUGADOR 2 ]</h2>
+                <div class="player-header">JUGADOR 2</div>
                 <div class="grid-terminal" id="board-JUGADOR-2"></div>
             </div>
         </div>
 
         <div id="log-console">
-            <p>> ESPERANDO JUGADORES PARA DIVIDIR PANTALLA...</p>
+            <p>> ESPERANDO CONEXIÓN DE DISPOSITIVOS...</p>
         </div>
     </div>
 
     <div id="victory-overlay">
-        <h1 class="blink">MISIÓN CUMPLIDA</h1>
+        <h1 class="blink">OBJETIVO LOCALIZADO</h1>
         <h2 id="winner-text"></h2>
-        <p>PRESIONEN 'NUEVA PARTIDA' PARA REINICIAR</p>
+        <p>PRESIONEN 'NUEVA PARTIDA' PARA REINICIAR SISTEMAS</p>
     </div>
 
     <script>
@@ -81,13 +81,12 @@
         });
 
         socket.on('visual-discard', (data) => {
-            // El role viene como "JUGADOR 1", lo convertimos a "JUGADOR-1" para el ID
             const roleId = data.role.replace(' ', '-');
             const card = document.getElementById(`char-${roleId}-${data.id}`);
             if(card) {
                 card.classList.toggle('eliminated');
                 const p = document.createElement('p');
-                p.textContent = `> ${data.role}: ACTUALIZÓ REGISTRO ${data.id}.`;
+                p.textContent = `> ${data.role} ACTUALIZÓ REGISTRO ID:${data.id}`;
                 log.appendChild(p);
                 log.scrollTop = log.scrollHeight;
             }
@@ -96,14 +95,22 @@
         socket.on('game-over', (data) => {
             clearInterval(timerInterval);
             document.getElementById('victory-overlay').style.display = 'flex';
-            document.getElementById('winner-text').textContent = `${data.player} GANÓ!`;
+            document.getElementById('winner-text').textContent = `${data.player} HA IDENTIFICADO A ${data.character}`;
         });
 
         socket.on('reset-game', () => {
             clearInterval(timerInterval);
             document.getElementById('timer').textContent = "00:00";
             document.getElementById('victory-overlay').style.display = 'none';
+            log.innerHTML = '<p>> SISTEMAS REINICIADOS. ESPERANDO INICIO...</p>';
             initBoards();
+        });
+
+        socket.on('update-status', (msg) => {
+            const p = document.createElement('p');
+            p.textContent = `> ${msg}`;
+            log.appendChild(p);
+            log.scrollTop = log.scrollHeight;
         });
 
         initBoards();
