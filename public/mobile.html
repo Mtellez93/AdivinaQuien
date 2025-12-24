@@ -3,41 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TERMINAL CLIENTE</title>
+    <title>TERMINAL REMOTA</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
+    <style>
+        /* Estilos específicos para celular */
+        .mobile-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 2 columnas en celular */
+            gap: 10px;
+            padding: 10px;
+        }
+        .btn-char {
+            background: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 15px 5px;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            font-size: 0.8em;
+        }
+        .btn-char.off {
+            border-color: #440000;
+            color: #440000;
+            text-decoration: line-through;
+        }
+        .status-bar {
+            background: #0f0;
+            color: #000;
+            padding: 5px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
-<body class="mobile-body">
-    <div id="setup">
-        <h2>IDENTIFICACIÓN REQUERIDA</h2>
-        <button onclick="joinGame()">CONECTAR AL SISTEMA</button>
-    </div>
-
-    <div id="game-controls" style="display:none;">
-        <h3 id="player-id">CARGANDO...</h3>
-        <p>SELECCIONA PARA DESCARTAR EN TV:</p>
-        <div id="mobile-grid">
-            <button onclick="discard(1)">MICKEY</button>
-            <button onclick="discard(2)">ELSA</button>
-        </div>
+<body>
+    <div class="status-bar" id="role-tag">CONECTANDO AL SERVIDOR...</div>
+    
+    <div id="game-controls">
+        <div class="mobile-grid" id="button-container">
+            </div>
     </div>
 
     <script>
         const socket = io();
+        const container = document.getElementById('button-container');
+        const roleTag = document.getElementById('role-tag');
 
-        function joinGame() {
-            socket.emit('register-device', 'mobile');
-            document.getElementById('setup').style.display = 'none';
-            document.getElementById('game-controls').style.display = 'block';
-        }
+        const personajes = [
+            { id: 1, nombre: "MICKEY MOUSE" }, { id: 2, nombre: "ELSA" },
+            { id: 3, nombre: "WOODY" }, { id: 4, nombre: "STITCH" },
+            { id: 5, nombre: "SIMBA" }, { id: 6, nombre: "MALÉFICA" },
+            { id: 7, nombre: "BUZZ LIGHTYEAR" }, { id: 8, nombre: "MOANA" },
+            { id: 9, nombre: "GOOFY" }, { id: 10, nombre: "DONALD" },
+            { id: 11, nombre: "MULAN" }, { id: 12, nombre: "PETER PAN" }
+        ];
+
+        // Registrar como móvil
+        socket.emit('register-device', 'mobile');
 
         socket.on('assign-role', (role) => {
-            document.getElementById('player-id').textContent = `ROL: ${role}`;
+            roleTag.textContent = `ACCESO CONCEDIDO: ${role}`;
         });
 
-        function discard(charId) {
-            socket.emit('discard-character', { id: charId });
-        }
+        // Crear botones
+        personajes.forEach(p => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-char';
+            btn.textContent = p.nombre;
+            btn.onclick = () => {
+                // Alternar estado visual en el celular
+                btn.classList.toggle('off');
+                // Enviar señal a la TV
+                socket.emit('discard-character', { id: p.id });
+            };
+            container.appendChild(btn);
+        });
     </script>
 </body>
 </html>
