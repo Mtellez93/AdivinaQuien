@@ -11,7 +11,7 @@
     <div class="main-wrapper">
         <header>
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h1>> SYSTEM: <span class="blink">DUAL_TRACKING</span></h1>
+                <h1>> SYSTEM: <span class="blink">DUAL_TRACKING_IMAGES</span></h1>
                 <div id="timer">00:00</div>
             </div>
         </header>
@@ -28,14 +28,14 @@
         </div>
 
         <div id="log-console">
-            <p>> ESPERANDO CONEXIÓN DE DISPOSITIVOS...</p>
+            <p>> ESCERANDO CONEXIÓN DE DISPOSITIVOS...</p>
         </div>
     </div>
 
     <div id="victory-overlay">
         <h1 class="blink">OBJETIVO LOCALIZADO</h1>
         <h2 id="winner-text"></h2>
-        <p>PRESIONEN 'NUEVA PARTIDA' PARA REINICIAR SISTEMAS</p>
+        <p>PRESIONEN 'NUEVA PARTIDA' EN EL MÓVIL PARA REINICIAR</p>
     </div>
 
     <script>
@@ -43,6 +43,7 @@
         const log = document.getElementById('log-console');
         let timerInterval;
 
+        // Lista de personajes con sus IDs (deben coincidir con el nombre de tus fotos 1.jpg, 2.jpg...)
         const personajes = [
             { id: 1, nombre: "MICKEY" }, { id: 2, nombre: "ELSA" },
             { id: 3, nombre: "WOODY" }, { id: 4, nombre: "STITCH" },
@@ -54,6 +55,18 @@
             { id: 15, nombre: "OLAF" }, { id: 16, nombre: "CENICIENTA" }
         ];
 
+        function playBeep(freq = 440, dur = 0.1) {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.type = 'square'; osc.frequency.value = freq;
+                gain.gain.value = 0.05;
+                osc.start(); osc.stop(audioCtx.currentTime + dur);
+            } catch(e) {}
+        }
+
         function initBoards() {
             ['JUGADOR-1', 'JUGADOR-2'].forEach(role => {
                 const board = document.getElementById(`board-${role}`);
@@ -62,7 +75,15 @@
                     const div = document.createElement('div');
                     div.className = 'char-card';
                     div.id = `char-${role}-${p.id}`;
-                    div.innerHTML = `<div class="id-tag">${p.id}</div><div class="name">${p.nombre}</div>`;
+                    
+                    // Aquí es donde se carga tu imagen
+                    div.innerHTML = `
+                        <div class="id-tag">ID_${p.id}</div>
+                        <div class="img-container">
+                            <img src="images/${p.id}.jpg" alt="${p.nombre}">
+                        </div>
+                        <div class="name">${p.nombre}</div>
+                    `;
                     board.appendChild(div);
                 });
             });
@@ -85,6 +106,7 @@
             const card = document.getElementById(`char-${roleId}-${data.id}`);
             if(card) {
                 card.classList.toggle('eliminated');
+                playBeep(300, 0.1);
                 const p = document.createElement('p');
                 p.textContent = `> ${data.role} ACTUALIZÓ REGISTRO ID:${data.id}`;
                 log.appendChild(p);
@@ -96,13 +118,14 @@
             clearInterval(timerInterval);
             document.getElementById('victory-overlay').style.display = 'flex';
             document.getElementById('winner-text').textContent = `${data.player} HA IDENTIFICADO A ${data.character}`;
+            playBeep(600, 0.5);
         });
 
         socket.on('reset-game', () => {
             clearInterval(timerInterval);
             document.getElementById('timer').textContent = "00:00";
             document.getElementById('victory-overlay').style.display = 'none';
-            log.innerHTML = '<p>> SISTEMAS REINICIADOS. ESPERANDO INICIO...</p>';
+            log.innerHTML = '<p>> SISTEMAS REINICIADOS. ESPERANDO NUEVO INICIO...</p>';
             initBoards();
         });
 
