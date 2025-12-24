@@ -1,0 +1,66 @@
+:root {
+    --term-green: #00ff41;
+    --term-dim: #003b00;
+}
+
+body {
+    background-color: #000;
+    color: var(--term-green);
+    font-family: 'Courier New', monospace;
+    overflow: hidden;
+    padding: 20px;
+}
+
+/* Efecto de líneas de monitor viejo */
+.scanline {
+    width: 100%;
+    height: 100px;
+    z-index: 10;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(0, 255, 65, 0.1) 50%, rgba(0, 0, 0, 0) 100%);
+    opacity: 0.1;
+    position: absolute;
+    bottom: 100%;
+    animation: scan 4s linear infinite;
+}
+
+@keyframes scan {
+    0% { bottom: 100%; }
+    100% { bottom: -100%; }
+}
+
+.blink {
+    animation: blinker 1s linear infinite;
+}
+
+@keyframes blinker {
+    50% { opacity: 0; }
+}
+
+#log-console {
+    height: 150px;
+    background: var(--term-dim);
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid var(--term-green);
+    overflow-y: auto;
+    font-size: 0.9em;
+}
+
+.grid-terminal {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr); /* 6 personajes por fila en la TV */
+    gap: 15px;
+}
+
+.char-card {
+    border: 1px solid var(--term-green);
+    padding: 10px;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.char-card.eliminated {
+    background: #440000;
+    border-color: #ff0000;
+    opacity: 0.3;
+}
