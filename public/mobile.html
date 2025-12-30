@@ -3,113 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CONTROL OPERATIVO</title>
+    <title>CONTROLLER - TACTICAL GUESS</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body { padding: 15px; background: #05080a; color: #fff; font-family: 'Courier New', monospace; user-select: none; }
-        .role-banner { text-align: center; padding: 10px; font-weight: bold; border-radius: 4px; margin-bottom: 15px; border: 1px solid #333; }
-        .p1-theme { background: #00f2ff; color: #000; box-shadow: 0 0 10px #00f2ff; }
-        .p2-theme { background: #ffaa00; color: #000; box-shadow: 0 0 10px #ffaa00; }
-        .secret-card { background: #111; border: 2px dashed #444; padding: 15px; text-align: center; margin-bottom: 20px; }
-        .secret-name { color: #555; font-weight: bold; display: block; font-size: 1.4rem; margin-top: 5px; text-transform: uppercase; }
-        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        button { border: 1px solid #444; background: #222; color: #fff; padding: 15px 5px; font-family: inherit; cursor: pointer; border-radius: 4px; }
-        .btn-start { background: #004400; border-color: #0f0; font-weight: bold; }
-        .btn-win { background: #440000; border-color: #f00; font-weight: bold; }
-        .btn-reset { grid-column: span 2; background: #1a1a1a; color: #888; font-size: 0.7rem; margin-top: 5px; }
-        .grid-chars { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-        .char-btn { border: 1px solid #444; padding: 15px 2px; font-size: 0.75rem; text-transform: uppercase; }
-        .char-btn.off { opacity: 0.2; background: #000; text-decoration: line-through; color: #f00; border-color: #300; }
-        .locked-ui { opacity: 0.2 !important; pointer-events: none !important; filter: grayscale(1); }
+        /* Estilos específicos para el móvil que no afectan a la TV */
+        body { overflow-y: auto; height: auto; padding-bottom: 50px; }
+        .mobile-container { padding: 15px; text-align: center; }
+        .secret-banner { 
+            background: #1a1a1a; 
+            border: 2px solid var(--p1-color); 
+            padding: 10px; 
+            margin-bottom: 15px; 
+            border-radius: 8px;
+        }
+        .grid-mobile {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+        .btn-guess {
+            background: var(--red);
+            color: white;
+            border: none;
+            padding: 15px;
+            width: 100%;
+            font-weight: bold;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        .loading-screen {
+            height: 80vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+        }
     </style>
 </head>
 <body>
-    <div id="role-tag" class="role-banner">CONECTANDO AL SATÉLITE...</div>
-    
-    <div id="secret-card-ui" class="secret-card">
-        OBJETIVO DEL RIVAL:
-        <span id="secret-target" class="secret-name">BLOQUEADO</span>
+    <div class="mobile-container" id="game-container">
+        <div id="setup-zone">
+            <div class="loading-screen">
+                <p class="blink">ESPERANDO INICIO DE PARTIDA...</p>
+            </div>
+        </div>
     </div>
-
-    <div class="controls">
-        <button id="start-btn" class="btn-start" onclick="iniciarPartida()">INICIAR PARTIDA</button>
-        <button id="win-btn" class="btn-win locked-ui" onclick="win()">¡LO TENGO!</button>
-        <button class="btn-reset" onclick="socket.emit('request-reset')">REINICIAR SISTEMA</button>
-    </div>
-
-    <div class="grid-chars locked-ui" id="char-grid"></div>
 
     <script>
         const socket = io();
-        let gameStarted = false;
         let myRole = "";
 
+        // 1. Registro inicial
         socket.emit('register-device', 'mobile');
 
-        socket.on('assign-role', r => {
-            myRole = r;
-            const t = document.getElementById('role-tag');
-            t.textContent = `OPERADOR: ${r}`;
-            t.className = 'role-banner ' + (r === 'JUGADOR 1' ? 'p1-theme' : 'p2-theme');
+        socket.on('assign-role', role => {
+            myRole = role;
+            document.title = `CONTROLLER - ${role}`;
         });
 
-        function iniciarPartida() {
-            socket.emit('start-game');
-            document.getElementById('start-btn').textContent = "CARGANDO...";
-        }
-
+        // 2. Recepción del Tablero y Objetivo (LOGICA CORREGIDA)
         socket.on('game-setup', data => {
-            gameStarted = true;
-            const targetDisplay = document.getElementById('secret-target');
-            targetDisplay.textContent = data.secret;
-            targetDisplay.style.color = (myRole === 'JUGADOR 1' ? "#00f2ff" : "#ffaa00");
+            const container = document.getElementById('game-container');
             
-            document.getElementById('char-grid').classList.remove('locked-ui');
-            document.getElementById('win-btn').classList.remove('locked-ui');
-            
-            const startBtn = document.getElementById('start-btn');
-            startBtn.classList.add('locked-ui');
-            startBtn.textContent = "MISIÓN EN CURSO";
-            
-            renderBoard(data.board);
+            // Definir color según el rol
+            const accentColor = (myRole === 'JUGADOR 1') ? 'var(--p1-color)' : 'var(--p2-color)';
+
+            container.innerHTML = `
+                <div class="secret-banner" style="border-color: ${accentColor}">
+                    <p style="margin:0; font-size: 0.8rem; color: #888;">OBJETIVO QUE EL RIVAL DEBE BUSCAR:</p>
+                    <h2 style="margin:5px 0; color: ${accentColor}">${data.secret}</h2>
+                </div>
+
+                <div class="grid-mobile" id="mobile-grid"></div>
+
+                <button class="btn-guess" onclick="guessWho()">¡LO TENGO!</button>
+                <button style="margin-top:10px; background:#333; color:white; border:none; padding:10px; width:100%; border-radius:5px;" onclick="requestReset()">REINICIAR TODO</button>
+            `;
+
+            const grid = document.getElementById('mobile-grid');
+            data.board.forEach(personaje => {
+                const btn = document.createElement('div');
+                btn.className = 'char-card';
+                btn.id = `mobile-char-${personaje.id}`;
+                btn.style.padding = "10px";
+                btn.innerHTML = `
+                    <div class="name" style="font-size:0.8rem">${personaje.nombre}</div>
+                `;
+                btn.onclick = () => discard(personaje.id, personaje.nombre);
+                grid.appendChild(btn);
+            });
         });
 
-        function renderBoard(list) {
-            const g = document.getElementById('char-grid');
-            g.innerHTML = '';
-            list.forEach(p => {
-                const b = document.createElement('button');
-                b.className = 'char-btn';
-                b.textContent = p.nombre;
-                b.onclick = () => {
-                    if(!gameStarted) return;
-                    b.classList.toggle('off');
-                    socket.emit('discard-character', { id: p.id, role: myRole });
-                };
-                g.appendChild(b);
+        // 3. Acciones de Juego
+        function discard(id, nombre) {
+            const card = document.getElementById(`mobile-char-${id}`);
+            card.classList.toggle('eliminated');
+            
+            // Notificar a la TV
+            socket.emit('discard-character', {
+                role: myRole,
+                id: id
             });
         }
 
-        function win() {
-            if(!gameStarted) return;
-            const guess = prompt("IDENTIFIQUE AL OBJETIVO RIVAL:");
-            if(guess) {
-                socket.emit('declare-winner', { 
-                    player: myRole, 
-                    character: guess.toUpperCase().trim() 
+        function guessWho() {
+            const name = prompt("¿QUIÉN ES EL OBJETIVO DEL RIVAL?");
+            if (name) {
+                socket.emit('declare-winner', {
+                    player: myRole,
+                    character: name.trim().toUpperCase()
                 });
             }
         }
 
-        socket.on('guess-error', m => alert(m));
-        
-        socket.on('game-over', d => {
-            gameStarted = false;
-            document.getElementById('char-grid').classList.add('locked-ui');
-            alert(`¡OPERACIÓN CONCLUIDA! GANADOR: ${d.player}`);
-        });
+        function requestReset() {
+            if(confirm("¿REINICIAR LA PARTIDA PARA TODOS?")) {
+                socket.emit('request-reset');
+            }
+        }
 
+        socket.on('guess-error', msg => alert(msg));
         socket.on('reset-game', () => location.reload());
     </script>
 </body>
