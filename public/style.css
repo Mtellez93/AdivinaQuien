@@ -13,38 +13,44 @@ body {
     padding: 0;
     overflow: hidden; 
     height: 100vh;
+    width: 100vw;
 }
 
+/* CONTENEDOR PRINCIPAL */
 .main-wrapper { 
-    display: grid;
-    grid-template-rows: auto 1fr; /* El header ahora es minúsculo */
+    display: flex;
+    flex-direction: column;
     height: 100vh; 
     padding: 10px; 
     box-sizing: border-box;
-    gap: 10px;
+    gap: 8px;
 }
 
-/* Header ultra compacto */
+/* HEADER COMPACTO */
 .compact-header { 
-    padding: 5px 10px;
+    height: 30px; /* Altura fija para el header */
+    padding: 0 10px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
     display: flex;
     align-items: center;
+    flex-shrink: 0; /* Evita que el header se aplaste */
 }
 
+/* ÁREA DE JUEGO */
 .dual-screen { 
     display: flex; 
-    gap: 15px; 
-    overflow: hidden; 
+    gap: 10px; 
+    flex-grow: 1; /* Ocupa todo el espacio restante */
+    min-height: 0; /* TRUCO CLAVE: Permite que el contenido interno se encoja */
 }
 
 .player-section { 
     flex: 1; 
     display: flex; 
     flex-direction: column; 
-    border-radius: 10px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.01);
-    overflow: hidden;
+    min-height: 0; /* Permite que la sección se encoja */
 }
 
 #board-JUGADOR-1-parent { border: 2px solid var(--p1-color); }
@@ -53,43 +59,44 @@ body {
 .player-header { 
     text-align: center; 
     font-weight: bold; 
-    padding: 5px; 
-    font-size: 0.9rem; 
+    padding: 4px; 
+    font-size: 0.85rem; 
     text-transform: uppercase;
-    letter-spacing: 3px;
+    flex-shrink: 0;
 }
 
 .p1-header { background: var(--p1-color); color: #000; }
 .p2-header { background: var(--p2-color); color: #000; }
 
-/* GRID MAXIMIZADO */
+/* GRID AUTO-AJUSTABLE */
 .grid-terminal { 
     display: grid; 
     grid-template-columns: repeat(4, 1fr); 
     grid-template-rows: repeat(4, 1fr); 
-    gap: 10px; 
-    padding: 10px; 
-    height: 100%;
+    gap: 6px; 
+    padding: 8px; 
+    height: 100%; /* Ocupa el 100% de la sección del jugador */
     box-sizing: border-box;
+    min-height: 0; /* Permite que el grid se adapte al tamaño del monitor */
 }
 
 .char-card { 
     background: rgba(0, 0, 0, 0.5); 
     border: 1px solid rgba(255,255,255,0.05);
-    padding: 5px; 
+    padding: 4px; 
     display: flex; 
     flex-direction: column; 
     align-items: center;
     justify-content: center;
-    height: 100%;
     position: relative;
     box-sizing: border-box;
     border-radius: 4px;
+    overflow: hidden; /* Evita que el contenido se salga si el monitor es chico */
 }
 
 .img-container {
     width: 100%;
-    height: 82%; /* Aumentado un poco más */
+    height: 75%; /* Reducimos un poco para dar aire al nombre en monitores chicos */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -97,35 +104,37 @@ body {
 }
 
 .img-container img {
-    max-width: 98%;
-    max-height: 98%;
+    max-width: 95%;
+    max-height: 95%;
     object-fit: contain;
 }
 
 .name { 
-    font-size: 0.75rem; 
+    font-size: 0.65rem; /* Fuente más pequeña para seguridad */
     font-weight: bold; 
     color: rgba(255,255,255,0.9);
     text-transform: uppercase;
     text-align: center;
     width: 100%;
-    margin-top: 5px;
+    margin-top: 4px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* Pone "..." si el nombre es muy largo */
 }
 
-/* ELIMINACIÓN */
+/* ESTADOS */
 .char-card.eliminated { opacity: 0.08; filter: grayscale(1); }
 .char-card.eliminated::after {
     content: "X";
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 4.5rem;
+    font-size: 3rem;
     color: var(--red);
     opacity: 0.4;
 }
 
-/* VICTORIA */
+/* OVERLAY VICTORIA */
 #victory-overlay { 
     display: none; 
     position: fixed; 
@@ -135,6 +144,7 @@ body {
     flex-direction: column; 
     justify-content: center; 
     align-items: center; 
+    text-align: center;
 }
 
 .blink { animation: b 1.5s infinite; }
@@ -147,5 +157,5 @@ body {
     z-index: 6000;
     background-size: 100% 3px;
     pointer-events: none;
-    opacity: 0.15;
+    opacity: 0.1;
 }
