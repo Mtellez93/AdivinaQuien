@@ -11,8 +11,8 @@ const io = new Server(server);
 app.use(express.static(path.join(__dirname, 'public')));
 
 let players = {};
-// Aquí guardaremos el nombre del personaje que cada jugador DEBE ADIVINAR
-let targetsToGuess = { "JUGADOR 1": "", "JUGADOR 2": "" };
+// Esta es la clave: aquí guardamos qué nombre debe escribir cada uno para ganar
+let whatPlayerMustGuess = { "JUGADOR 1": "", "JUGADOR 2": "" };
 
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/1jP73m0cs5RuxM_jNjsDH_tiwpdIH5zc6fM416NOIdHw/export?format=csv";
 
@@ -32,9 +32,7 @@ async function getCharactersFromSheet() {
             }
             return null;
         }).filter(p => p && p.nombre && p.url.startsWith('http'));
-    } catch (e) {
-        return [];
-    }
+    } catch (e) { return []; }
 }
 
 io.on('connection', (socket) => {
@@ -53,26 +51,34 @@ io.on('connection', (socket) => {
         const allChars = await getCharactersFromSheet();
         if (allChars.length < 16) return;
 
-        // 1. Elegimos los dos secretos de la lista total
         const shuffled = [...allChars].sort(() => 0.5 - Math.random());
-        const secret1 = shuffled[0]; // Lo que J1 debe adivinar (está en tablero J2)
-        const secret2 = shuffled[1]; // Lo que J2 debe adivinar (está en tablero J1)
-
-        // 2. Armamos tableros asegurando que el secreto del rival esté presente
-        const pool = allChars.filter(p => p.id !== secret1.id && p.id !== secret2.id);
         
-        const p1Board = [secret2, ...pool.sort(() => 0.5 - Math.random()).slice(0, 15)].sort(() => 0.5 - Math.random());
-        const p2Board = [secret1, ...pool.sort(() => 0.5 - Math.random()).slice(0, 15)].sort(() => 0.5 - Math.random());
+        // IDENTIDADES (Quién es quién)
+        const identityP1 = shuffled[0]; // J1 ES este personaje
+        const identityP2 = shuffled[1]; // J2 ES este personaje
 
-        // 3. Guardamos CORRECTAMENTE qué debe adivinar cada uno
-        targetsToGuess["JUGADOR 1"] = secret1.nombre;
-        targetsToGuess["JUGADOR 2"] = secret2.nombre;
+        // Lo que cada uno debe intentar adivinar
+        whatPlayerMustGuess["JUGADOR 1"] = identityP2.nombre; 
+        whatPlayerMustGuess["JUGADOR 2"] = identityP1.nombre;
 
-        console.log(`> Partida Iniciada. J1 busca a: ${secret1.nombre} | J2 busca a: ${secret2.nombre}`);
+        // Construir tableros asegurando que la identidad del rival esté presente
+        const pool = allChars.filter(p => p.id !== identityP1.id && p.id !== identityP2.id);
+        
+        const p1Board = [identityP2, ...pool.sort(() => 0.5 - Math.random()).slice(0, 15)].sort(() => 0.5 - Math.random());
+        const p2Board = [identityP1, ...pool.sort(() => 0.5 - Math.random()).slice(0, 15)].sort(() => 0.5 - Math.random());
+
+        console.log(`> J1 es ${identityP1.nombre} y debe adivinar a ${identityP2.nombre}`);
+        console.log(`> J2 es ${identityP2.nombre} y debe adivinar a ${identityP1.nombre}`);
 
         for (const [id, role] of Object.entries(players)) {
-            if (role === 'JUGADOR 1') io.to(id).emit('game-setup', { board: p1Board, secret: secret2.nombre });
-            if (role === 'JUGADOR 2') io.to(id).emit('game-setup', { board: p2Board, secret: secret1.nombre });
+            if (role === 'JUGADOR 1') {
+                // Al J1 le decimos que SU identidad (lo que el rival debe adivinar) es identityP1
+                socket.to(id).emit('game-setup', { board: p1Board, secret: identityP1.nombre });
+            }
+            if (role === 'JUGADOR 2') {
+                // Al J2 le decimos que SU identidad (lo que el rival debe adivinar) es identityP2
+                socket.to(id).emit('game-setup', { board: p2Board, secret: identityP2.nombre });
+            }
         }
 
         io.to('tv-room').emit('tv-setup', { p1Board, p2Board });
@@ -81,14 +87,14 @@ io.on('connection', (socket) => {
     socket.on('discard-character', (data) => io.to('tv-room').emit('visual-discard', data));
 
     socket.on('declare-winner', (data) => {
-        const myRole = data.player; // 'JUGADOR 1' o 'JUGADOR 2'
-        const correctTarget = targetsToGuess[myRole];
-        const userGuess = data.character.trim().toUpperCase();
+        const myRole = data.player;
+        const target = whatPlayerMustGuess[myRole];
+        const guess = data.character.trim().toUpperCase();
 
-        if (userGuess === correctTarget) {
-            io.emit('game-over', { player: myRole, character: correctTarget });
+        if (guess === target) {
+            io.emit('game-over', { player: myRole, character: target });
         } else {
-            socket.emit('guess-error', `INCORRECTO: "${userGuess}" NO ES EL OBJETIVO.`);
+            socket.emit('guess-error', `INCORRECTO. EL RIVAL NO ES "${guess}"`);
         }
     });
 
