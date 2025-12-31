@@ -2,10 +2,40 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adivina Quien</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tablero Adivina Quien</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
+    <style>
+        /* Ajuste específico para Android y navegadores móviles */
+        :root {
+            --doc-height: 100vh;
+        }
+
+        body {
+            height: var(--doc-height);
+            width: 100vw;
+            overflow: hidden;
+            position: fixed; /* Evita el rebote de scroll en móviles */
+        }
+
+        .main-wrapper {
+            height: var(--doc-height);
+        }
+
+        /* Aseguramos que el grid sea flexible pero contenido */
+        .grid-terminal {
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 23%); /* Forzamos un alto relativo seguro */
+            align-content: stretch;
+        }
+
+        @media (max-width: 600px) {
+            .dual-screen {
+                flex-direction: column; /* En móviles muy pequeños los pone uno sobre otro */
+            }
+        }
+    </style>
 </head>
 <body class="terminal-body">
     <div class="scanline"></div>
@@ -13,8 +43,8 @@
     <div class="main-wrapper">
         <header class="compact-header">
             <div class="brand">
-                <span style="color: var(--p1-color); font-size: 0.9rem; letter-spacing: 2px;">
-                    > Adivina Quien <span class="blink"> ¿Puedes?</span>
+                <span style="color: var(--p1-color); font-size: 0.8rem; letter-spacing: 2px;">
+                    > SYSTEM_STATUS: <span class="blink">ACTIVE_LINK</span>
                 </span>
             </div>
         </header>
@@ -41,6 +71,14 @@
     <script>
         const socket = io();
 
+        // TRUCO PARA ANDROID: Recalcular el alto real de la ventana
+        const documentHeight = () => {
+            const doc = document.documentElement;
+            doc.style.setProperty('--doc-height', `${window.innerHeight}px`);
+        };
+        window.addEventListener('resize', documentHeight);
+        documentHeight();
+
         socket.emit('register-device', 'tv');
 
         socket.on('tv-setup', data => {
@@ -62,7 +100,6 @@
                 card.innerHTML = `
                     <div class="img-container">
                         <img src="${cleanUrl}" 
-                             style="opacity:0; transition: opacity 0.5s;" 
                              onload="this.style.opacity='1'"
                              onerror="this.src='https://via.placeholder.com/150?text=Error'"
                              alt="${personaje.nombre}">
