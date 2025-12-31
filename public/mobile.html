@@ -7,81 +7,24 @@
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        /* Ajustes específicos para que el control se sienta como una App */
-        body { 
-            overflow-y: auto; 
-            height: auto; 
-            padding: 10px; 
-            background: #05080a;
-        }
-        .mobile-container { 
-            max-width: 500px; 
-            margin: 0 auto; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 15px;
-        }
-        .secret-banner { 
-            background: rgba(255, 255, 255, 0.05); 
-            border: 2px solid #333; 
-            padding: 15px; 
-            border-radius: 12px;
-            text-align: center;
-        }
-        .grid-mobile {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-        /* Tarjetas en el móvil más compactas */
-        .char-card-mobile {
-            background: #111;
-            border: 1px solid #333;
-            padding: 12px 5px;
-            border-radius: 6px;
-            text-align: center;
-            color: #fff;
-            font-size: 0.8rem;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        .char-card-mobile.eliminated {
-            opacity: 0.2;
-            text-decoration: line-through;
-            border-color: var(--red);
-        }
-        .btn-main {
-            padding: 18px;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 1rem;
-            text-transform: uppercase;
-            cursor: pointer;
-        }
-        .btn-guess { background: var(--red); color: white; }
-        .btn-start { background: var(--p1-color); color: black; }
-        .btn-reset { background: #222; color: #888; font-size: 0.7rem; padding: 10px; }
-        
-        .loading-screen {
-            height: 70vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            gap: 20px;
-        }
+        body { overflow-y: auto; height: auto; padding: 10px; background: #05080a; color: white; }
+        .mobile-container { max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; }
+        .secret-banner { background: rgba(255, 255, 255, 0.05); border: 2px solid #333; padding: 15px; border-radius: 12px; text-align: center; }
+        .grid-mobile { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .char-card-mobile { background: #111; border: 1px solid #333; padding: 12px 5px; border-radius: 6px; text-align: center; color: #fff; font-size: 0.8rem; font-weight: bold; text-transform: uppercase; }
+        .char-card-mobile.eliminated { opacity: 0.2; text-decoration: line-through; border-color: var(--red); }
+        .btn-main { padding: 18px; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; text-transform: uppercase; cursor: pointer; }
+        .btn-guess { background: var(--red); color: white; margin-top: 10px; }
+        .btn-start { background: var(--p1-color); color: black; min-width: 200px; }
+        .btn-reset { background: #222; color: #888; font-size: 0.7rem; padding: 10px; margin-top: 10px; }
+        .loading-screen { height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; }
     </style>
 </head>
 <body>
-    <div class="scanline"></div>
     <div class="mobile-container" id="game-container">
         <div id="setup-zone" class="loading-screen">
             <h2 id="role-display" class="blink">CONECTANDO...</h2>
-            <button id="start-btn" class="btn-main btn-start" onclick="startGame()">
-                INICIAR NUEVA PARTIDA
-            </button>
-            <p style="color: #555; font-size: 0.8rem;">Asegúrate de que la TV esté encendida</p>
+            <button id="start-btn" class="btn-main btn-start" onclick="startGame()">INICIAR NUEVA PARTIDA</button>
         </div>
     </div>
 
@@ -89,22 +32,16 @@
         const socket = io();
         let myRole = "";
 
-        // Registrar dispositivo
         socket.emit('register-device', 'mobile');
 
-        // Escuchar asignación de rol
         socket.on('assign-role', role => {
             myRole = role;
-            document.getElementById('role-display').textContent = role;
-            document.getElementById('role-display').classList.remove('blink');
-            
-            if (role === 'ESPECTADOR') {
-                document.getElementById('start-btn').style.display = 'none';
-                document.getElementById('role-display').textContent = "SALA LLENA (ESPECTADOR)";
-            }
+            const display = document.getElementById('role-display');
+            display.textContent = role;
+            display.classList.remove('blink');
+            if (role === 'ESPECTADOR') document.getElementById('start-btn').style.display = 'none';
         });
 
-        // Función para iniciar el juego desde el móvil
         function startGame() {
             socket.emit('start-game');
             const btn = document.getElementById('start-btn');
@@ -113,56 +50,41 @@
             btn.style.opacity = "0.5";
         }
 
-        // Configuración de la partida cuando el servidor responde
         socket.on('game-setup', data => {
             const container = document.getElementById('game-container');
             const accentColor = (myRole === 'JUGADOR 1') ? 'var(--p1-color)' : 'var(--p2-color)';
 
-            // Renderizar Interfaz de Juego
             container.innerHTML = `
                 <div class="secret-banner" style="border-color: ${accentColor}">
-                    <p style="margin:0; font-size: 0.7rem; color: #888; letter-spacing: 1px;">TU OBJETIVO (A ADIVINAR):</p>
-                    <h2 style="margin:5px 0; color: ${accentColor}; font-size: 1.8rem;">${data.secret}</h2>
-                    <p style="margin:0; font-size: 0.6rem; color: #555;">Tú eres este personaje en el tablero del rival</p>
+                    <p style="margin:0; font-size: 0.7rem; color: #aaa;">TU OBJETIVO A ADIVINAR:</p>
+                    <h2 style="margin:5px 0; color: ${accentColor}; font-size: 1.6rem;">${data.secret}</h2>
                 </div>
-
                 <div class="grid-mobile" id="mobile-grid"></div>
-
                 <button class="btn-main btn-guess" onclick="guessWho()">¡LO TENGO!</button>
                 <button class="btn-main btn-reset" onclick="requestReset()">REINICIAR TODO</button>
             `;
 
-            // Renderizar botones de personajes para descartar
             const grid = document.getElementById('mobile-grid');
-            data.board.forEach(personaje => {
-                const btn = document.createElement('div');
-                btn.className = 'char-card-mobile';
-                btn.id = `mobile-char-${personaje.id}`;
-                btn.textContent = personaje.nombre;
-                btn.onclick = () => {
-                    btn.classList.toggle('eliminated');
-                    socket.emit('discard-character', { role: myRole, id: personaje.id });
+            data.board.forEach(p => {
+                const b = document.createElement('div');
+                b.className = 'char-card-mobile';
+                b.id = `mobile-char-${p.id}`;
+                b.textContent = p.nombre;
+                b.onclick = () => {
+                    b.classList.toggle('eliminated');
+                    socket.emit('discard-character', { role: myRole, id: p.id });
                 };
-                grid.appendChild(btn);
+                grid.appendChild(b);
             });
         });
 
-        // Función para adivinar
         function guessWho() {
-            const name = prompt("ESCRIBE EL NOMBRE DEL PERSONAJE DEL RIVAL:");
-            if (name) {
-                socket.emit('declare-winner', {
-                    player: myRole,
-                    character: name.trim().toUpperCase()
-                });
-            }
+            const name = prompt("¿QUIÉN ES EL PERSONAJE DEL RIVAL?");
+            if (name) socket.emit('declare-winner', { player: myRole, character: name });
         }
 
-        // Función para resetear
         function requestReset() {
-            if(confirm("¿Seguro que quieres reiniciar el juego para todos?")) {
-                socket.emit('request-reset');
-            }
+            if(confirm("¿Reiniciar para todos?")) socket.emit('request-reset');
         }
 
         socket.on('guess-error', msg => alert(msg));
