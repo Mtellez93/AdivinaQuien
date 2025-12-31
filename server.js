@@ -13,7 +13,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 let players = {};
 let whatPlayerMustGuess = { "JUGADOR 1": "", "JUGADOR 2": "" };
 
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/1jP73m0cs5RuxM_jNjsDH_tiwpdIH5zc6fM416NOIdHw/export?format=csv";
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1jP73m0cs5RuxM_jNjsDH_tiwpdIH5zc5fM416NOIdHw/export?format=csv";
 
 async function getCharactersFromSheet() {
     try {
@@ -52,24 +52,31 @@ io.on('connection', (socket) => {
 
         const shuffled = [...allChars].sort(() => 0.5 - Math.random());
         
-        const identityP1 = shuffled[0]; 
-        const identityP2 = shuffled[1]; 
+        // IDENTIDADES REALES
+        const identityP1 = shuffled[0]; // J1 es este personaje
+        const identityP2 = shuffled[1]; // J2 es este personaje
 
-        // J1 debe adivinar la identidad del J2 y viceversa
+        // ASIGNACIÓN DE OBJETIVOS (CRUZADA)
+        // Lo que el J1 debe escribir para ganar es el personaje del J2
         whatPlayerMustGuess["JUGADOR 1"] = identityP2.nombre; 
         whatPlayerMustGuess["JUGADOR 2"] = identityP1.nombre;
 
         const pool = allChars.filter(p => p.id !== identityP1.id && p.id !== identityP2.id);
         
+        // TABLEROS (CRUZADOS)
+        // El tablero del J1 debe contener al personaje del J2 para poder adivinarlo
         const p1Board = [identityP2, ...pool.sort(() => 0.5 - Math.random()).slice(0, 15)].sort(() => 0.5 - Math.random());
         const p2Board = [identityP1, ...pool.sort(() => 0.5 - Math.random()).slice(0, 15)].sort(() => 0.5 - Math.random());
 
-        // IMPORTANTE: io.to(id) asegura que el emisor también reciba el mensaje
+        console.log(`ASIGNACIÓN: J1 debe buscar a ${identityP2.nombre} | J2 debe buscar a ${identityP1.nombre}`);
+
         for (const [id, role] of Object.entries(players)) {
             if (role === 'JUGADOR 1') {
+                // Enviamos a J1 el nombre de J2 como su objetivo
                 io.to(id).emit('game-setup', { board: p1Board, secret: identityP2.nombre });
             }
             if (role === 'JUGADOR 2') {
+                // Enviamos a J2 el nombre de J1 como su objetivo
                 io.to(id).emit('game-setup', { board: p2Board, secret: identityP1.nombre });
             }
         }
