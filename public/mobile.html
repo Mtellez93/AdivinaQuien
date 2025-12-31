@@ -56,9 +56,11 @@
 
             container.innerHTML = `
                 <div class="secret-banner" style="border-color: ${accentColor}">
-                    <p style="margin:0; font-size: 0.7rem; color: #aaa;">TU OBJETIVO A ADIVINAR:</p>
+                    <p style="margin:0; font-size: 0.7rem; color: #aaa;">ERES ESTE PERSONAJE:</p>
                     <h2 style="margin:5px 0; color: ${accentColor}; font-size: 1.6rem;">${data.secret}</h2>
+                    <p style="margin:0; font-size: 0.6rem; color: #666;">El rival debe adivinar quién eres tú.</p>
                 </div>
+                <div style="text-align:center; font-size:0.7rem; color:var(--p1-color)">BUSCA AL RIVAL ABAJO:</div>
                 <div class="grid-mobile" id="mobile-grid"></div>
                 <button class="btn-main btn-guess" onclick="guessWho()">¡LO TENGO!</button>
                 <button class="btn-main btn-reset" onclick="requestReset()">REINICIAR TODO</button>
