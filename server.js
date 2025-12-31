@@ -13,14 +13,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 let players = {};
 let whatPlayerMustGuess = { "JUGADOR 1": "", "JUGADOR 2": "" };
 
-const SHEET_URL = "https://docs.google.com/spreadsheets/d/1jP73m0cs5RuxM_jNjsDH_tiwpdIH5zc5fM416NOIdHw/export?format=csv";
+// URL VERIFICADA: Asegúrate de que tu Google Sheet esté "Publicado en la Web" como CSV
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1jP73m0cs5RuxM_jNjsDH_tiwpdIH5zc6fM416NOIdHw/export?format=csv";
 
 async function getCharactersFromSheet() {
     try {
+        console.log("> Intentando descargar personajes...");
         const response = await axios.get(`${SHEET_URL}&cachebuster=${Date.now()}`);
         const content = response.data.replace(/\r/g, "");
         const rows = content.split('\n').slice(1);
-        return rows.map(row => {
+        
+        const items = rows.map(row => {
             const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             if (cols.length >= 3) {
                 return {
@@ -31,52 +34,60 @@ async function getCharactersFromSheet() {
             }
             return null;
         }).filter(p => p && p.nombre && p.url.startsWith('http'));
-    } catch (e) { return []; }
+
+        console.log(`> Personajes cargados con éxito: ${items.length}`);
+        return items;
+    } catch (e) {
+        console.error("> ERROR CRÍTICO AL CARGAR SHEET:", e.message);
+        return [];
+    }
 }
 
 io.on('connection', (socket) => {
     socket.on('register-device', (type) => {
         if (type === 'tv') {
             socket.join('tv-room');
+            console.log("> TV Conectada");
         } else {
             const role = Object.keys(players).length < 2 ? 
                          (Object.values(players).includes('JUGADOR 1') ? 'JUGADOR 2' : 'JUGADOR 1') : 'ESPECTADOR';
             players[socket.id] = role;
             socket.emit('assign-role', role);
+            console.log(`> Móvil conectado: ${role}`);
         }
     });
 
     socket.on('start-game', async () => {
         const allChars = await getCharactersFromSheet();
-        if (allChars.length < 16) return;
+        
+        if (allChars.length < 16) {
+            console.error("> El juego no puede iniciar: se necesitan al menos 16 personajes en el Excel.");
+            return;
+        }
 
         const shuffled = [...allChars].sort(() => 0.5 - Math.random());
         
-        // IDENTIDADES REALES
-        const identityP1 = shuffled[0]; // J1 es este personaje
-        const identityP2 = shuffled[1]; // J2 es este personaje
+        // IDENTIDADES
+        const identityP1 = shuffled[0]; // J1 es este
+        const identityP2 = shuffled[1]; // J2 es este
 
-        // ASIGNACIÓN DE OBJETIVOS (CRUZADA)
-        // Lo que el J1 debe escribir para ganar es el personaje del J2
+        // OBJETIVOS CRUZADOS (J1 busca a J2)
         whatPlayerMustGuess["JUGADOR 1"] = identityP2.nombre; 
         whatPlayerMustGuess["JUGADOR 2"] = identityP1.nombre;
 
         const pool = allChars.filter(p => p.id !== identityP1.id && p.id !== identityP2.id);
         
-        // TABLEROS (CRUZADOS)
-        // El tablero del J1 debe contener al personaje del J2 para poder adivinarlo
+        // TABLEROS CRUZADOS (Cada uno tiene al otro en su rejilla)
         const p1Board = [identityP2, ...pool.sort(() => 0.5 - Math.random()).slice(0, 15)].sort(() => 0.5 - Math.random());
         const p2Board = [identityP1, ...pool.sort(() => 0.5 - Math.random()).slice(0, 15)].sort(() => 0.5 - Math.random());
 
-        console.log(`ASIGNACIÓN: J1 debe buscar a ${identityP2.nombre} | J2 debe buscar a ${identityP1.nombre}`);
+        console.log(`> PARTIDA OK: J1 busca a ${identityP2.nombre} | J2 busca a ${identityP1.nombre}`);
 
         for (const [id, role] of Object.entries(players)) {
             if (role === 'JUGADOR 1') {
-                // Enviamos a J1 el nombre de J2 como su objetivo
                 io.to(id).emit('game-setup', { board: p1Board, secret: identityP2.nombre });
             }
             if (role === 'JUGADOR 2') {
-                // Enviamos a J2 el nombre de J1 como su objetivo
                 io.to(id).emit('game-setup', { board: p2Board, secret: identityP1.nombre });
             }
         }
@@ -96,7 +107,12 @@ io.on('connection', (socket) => {
     });
 
     socket.on('request-reset', () => io.emit('reset-game'));
-    socket.on('disconnect', () => delete players[socket.id]);
+    
+    socket.on('disconnect', () => {
+        console.log(`> Desconexión: ${players[socket.id]}`);
+        delete players[socket.id];
+    });
 });
 
-server.listen(process.env.PORT || 3000, '0.0.0.0');
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, '0.0.0.0', () => console.log(`Servidor escuchando en puerto ${PORT}`));
