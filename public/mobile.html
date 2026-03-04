@@ -39,24 +39,68 @@
 
     <script>
         const socket = io();
+        const SESSION_KEY = 'adivina-session';
         let myRole = "";
+        let autoJoining = false;
 
         const urlCode = new URLSearchParams(window.location.search).get('code');
         if (urlCode) document.getElementById('lobby-code-input').value = urlCode.toUpperCase();
 
-        function joinLobby() {
-            const code = document.getElementById('lobby-code-input').value.trim();
-            const name = document.getElementById('name-input').value.trim();
-            document.getElementById('join-error').textContent = '';
-            socket.emit('join-lobby', { code, name });
+        function getSavedSession() {
+            try {
+                return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+            } catch {
+                return null;
+            }
         }
 
+        function saveSession(session) {
+            localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        }
+
+        function clearSession() {
+            localStorage.removeItem(SESSION_KEY);
+        }
+
+        function joinLobby(isAutomatic = false) {
+            const code = document.getElementById('lobby-code-input').value.trim();
+            const name = document.getElementById('name-input').value.trim();
+            const session = getSavedSession();
+
+            autoJoining = isAutomatic;
+            document.getElementById('join-error').textContent = '';
+            socket.emit('join-lobby', { code, name, playerId: session?.playerId });
+        }
+
+        socket.on('connect', () => {
+            const session = getSavedSession();
+            if (!session) return;
+
+            document.getElementById('lobby-code-input').value = session.code;
+            document.getElementById('name-input').value = session.name;
+            joinLobby(true);
+        });
+
         socket.on('join-error', message => {
+            if (autoJoining) {
+                clearSession();
+                document.querySelector('.join-card').style.display = 'block';
+            }
+            autoJoining = false;
             document.getElementById('join-error').textContent = message;
         });
 
         socket.on('assign-role', data => {
+            autoJoining = false;
             myRole = data.role;
+
+            saveSession({
+                playerId: data.playerId,
+                role: data.role,
+                name: data.name,
+                code: data.lobbyCode
+            });
+
             const display = document.getElementById('role-display');
             display.textContent = `${data.role} · ${data.name}`;
             display.classList.remove('blink');
@@ -112,7 +156,10 @@
         }
 
         socket.on('guess-error', msg => alert(msg));
-        socket.on('reset-game', () => location.reload());
+        socket.on('reset-game', () => {
+            clearSession();
+            location.reload();
+        });
     </script>
 </body>
 </html>
