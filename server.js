@@ -17,6 +17,7 @@ const RECONNECT_GRACE_MS = 2 * 60 * 1000;
 // Guardamos quién es quién realmente
 let playerIdentities = { "JUGADOR 1": "", "JUGADOR 2": "" };
 let gameStarted = false;
+let currentGameState = null;
 
 function createLobbyCode(length = 6) {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -96,6 +97,17 @@ io.on('connection', (socket) => {
     socket.on('register-tv', () => {
         socket.join('tv-room');
         socket.emit('lobby-info', { lobbyCode, players: getLobbyPlayers(), readyToStart: getLobbyPlayers().length === 2 });
+
+        if (gameStarted && currentGameState) {
+            socket.emit('tv-setup', {
+                p1Board: currentGameState.p1Board,
+                p2Board: currentGameState.p2Board
+            });
+
+            for (const discard of currentGameState.discards) {
+                socket.emit('visual-discard', discard);
+            }
+        }
     });
 
     socket.on('join-lobby', (payload) => {
@@ -140,6 +152,23 @@ io.on('connection', (socket) => {
 
         const player = players[playerId];
         socket.emit('assign-role', { role: player.role, name: player.name, lobbyCode, playerId });
+
+        if (gameStarted && currentGameState) {
+            if (player.role === 'JUGADOR 1') {
+                socket.emit('game-setup', {
+                    board: currentGameState.p1Board,
+                    secret: currentGameState.identityP1.nombre
+                });
+            }
+
+            if (player.role === 'JUGADOR 2') {
+                socket.emit('game-setup', {
+                    board: currentGameState.p2Board,
+                    secret: currentGameState.identityP2.nombre
+                });
+            }
+        }
+
         broadcastLobbyUpdate();
     });
 
@@ -166,6 +195,14 @@ io.on('connection', (socket) => {
         const p1Board = [identityP2, ...pool.sort(() => 0.5 - Math.random()).slice(0, 15)].sort(() => 0.5 - Math.random());
         const p2Board = [identityP1, ...pool.sort(() => 0.5 - Math.random()).slice(0, 15)].sort(() => 0.5 - Math.random());
 
+        currentGameState = {
+            p1Board,
+            p2Board,
+            identityP1,
+            identityP2,
+            discards: []
+        };
+
         console.log(`> J1 ES ${identityP1.nombre} | J2 ES ${identityP2.nombre}`);
 
         for (const player of Object.values(players)) {
@@ -184,7 +221,13 @@ io.on('connection', (socket) => {
         io.to('tv-room').emit('tv-setup', { p1Board, p2Board });
     });
 
-    socket.on('discard-character', (data) => io.to('tv-room').emit('visual-discard', data));
+    socket.on('discard-character', (data) => {
+        if (gameStarted && currentGameState) {
+            currentGameState.discards.push(data);
+        }
+
+        io.to('tv-room').emit('visual-discard', data);
+    });
 
     socket.on('declare-winner', (data) => {
         const myRole = data.player;
@@ -202,6 +245,7 @@ io.on('connection', (socket) => {
 
     socket.on('request-reset', () => {
         gameStarted = false;
+        currentGameState = null;
         io.emit('reset-game');
         broadcastLobbyUpdate();
     });
