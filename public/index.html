@@ -126,10 +126,12 @@
         }
 
         function startGame() {
+            document.querySelector('.lobby-panel').style.display = 'none';
             socket.emit('start-game');
         }
 
         socket.on('tv-setup', data => {
+            document.querySelector('.lobby-panel').style.display = 'none';
             renderBoard('JUGADOR-1', data.p1Board);
             renderBoard('JUGADOR-2', data.p2Board);
         });
