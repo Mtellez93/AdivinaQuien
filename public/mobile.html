@@ -15,16 +15,25 @@
         .char-card-mobile.eliminated { opacity: 0.2; text-decoration: line-through; border-color: var(--red); }
         .btn-main { padding: 18px; border: none; border-radius: 8px; font-weight: bold; font-size: 1rem; text-transform: uppercase; cursor: pointer; }
         .btn-guess { background: var(--red); color: white; margin-top: 10px; }
-        .btn-start { background: var(--p1-color); color: black; min-width: 200px; }
+        .btn-join { background: var(--p1-color); color: black; }
         .btn-reset { background: #222; color: #888; font-size: 0.7rem; padding: 10px; margin-top: 10px; }
-        .loading-screen { height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 20px; }
+        .loading-screen { height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 14px; }
+        .join-card { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 14px; box-sizing: border-box; }
+        .join-card input { width: 100%; box-sizing: border-box; margin-bottom: 8px; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #0e1218; color: white; text-transform: uppercase; }
+        .error-msg { color: #ff7171; font-size: 0.8rem; min-height: 18px; margin: 0; }
     </style>
 </head>
 <body>
     <div class="mobile-container" id="game-container">
         <div id="setup-zone" class="loading-screen">
+            <div class="join-card">
+                <h3 style="margin-top:0;">UNIRSE AL LOBBY</h3>
+                <input id="lobby-code-input" type="text" maxlength="6" placeholder="CÓDIGO DE LOBBY">
+                <input id="name-input" type="text" maxlength="20" placeholder="TU NOMBRE">
+                <button id="join-btn" class="btn-main btn-join" onclick="joinLobby()">ENTRAR</button>
+                <p id="join-error" class="error-msg"></p>
+            </div>
             <h2 id="role-display" class="blink">CONECTANDO...</h2>
-            <button id="start-btn" class="btn-main btn-start" onclick="startGame()">INICIAR NUEVA PARTIDA</button>
         </div>
     </div>
 
@@ -32,23 +41,36 @@
         const socket = io();
         let myRole = "";
 
-        socket.emit('register-device', 'mobile');
+        const urlCode = new URLSearchParams(window.location.search).get('code');
+        if (urlCode) document.getElementById('lobby-code-input').value = urlCode.toUpperCase();
 
-        socket.on('assign-role', role => {
-            myRole = role;
-            const display = document.getElementById('role-display');
-            display.textContent = role;
-            display.classList.remove('blink');
-            if (role === 'ESPECTADOR') document.getElementById('start-btn').style.display = 'none';
+        function joinLobby() {
+            const code = document.getElementById('lobby-code-input').value.trim();
+            const name = document.getElementById('name-input').value.trim();
+            document.getElementById('join-error').textContent = '';
+            socket.emit('join-lobby', { code, name });
+        }
+
+        socket.on('join-error', message => {
+            document.getElementById('join-error').textContent = message;
         });
 
-        function startGame() {
-            socket.emit('start-game');
-            const btn = document.getElementById('start-btn');
-            btn.innerText = "PREPARANDO...";
-            btn.disabled = true;
-            btn.style.opacity = "0.5";
-        }
+        socket.on('assign-role', data => {
+            myRole = data.role;
+            const display = document.getElementById('role-display');
+            display.textContent = `${data.role} · ${data.name}`;
+            display.classList.remove('blink');
+            document.querySelector('.join-card').style.display = 'none';
+        });
+
+        socket.on('waiting-room-update', (data) => {
+            if (myRole && !data.gameStarted) {
+                const display = document.getElementById('role-display');
+                display.textContent = data.readyToStart
+                    ? `${myRole} · LISTO, ESPERANDO START GAME EN TV`
+                    : `${myRole} · ESPERANDO AL OTRO JUGADOR`;
+            }
+        });
 
         socket.on('game-setup', data => {
             const container = document.getElementById('game-container');

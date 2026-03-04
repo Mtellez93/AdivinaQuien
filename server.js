@@ -13,6 +13,28 @@ app.use(express.static(path.join(__dirname, 'public')));
 let players = {};
 // Guardamos quién es quién realmente
 let playerIdentities = { "JUGADOR 1": "", "JUGADOR 2": "" };
+let gameStarted = false;
+
+function createLobbyCode(length = 6) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+const lobbyCode = createLobbyCode();
+
+function getLobbyPlayers() {
+    return Object.values(players)
+        .filter((player) => player.role !== 'ESPECTADOR')
+        .sort((a, b) => a.role.localeCompare(b.role))
+        .map((player) => ({ role: player.role, name: player.name }));
+}
+
+function broadcastLobbyUpdate() {
+    const lobbyPlayers = getLobbyPlayers();
+    const readyToStart = lobbyPlayers.length === 2;
+    io.to('tv-room').emit('lobby-update', { players: lobbyPlayers, readyToStart, lobbyCode });
+    io.emit('waiting-room-update', { players: lobbyPlayers, readyToStart, gameStarted });
+}
 
 const SHEET_URL = "https://docs.google.com/spreadsheets/d/1jP73m0cs5RuxM_jNjsDH_tiwpdIH5zc6fM416NOIdHw/export?format=csv";
 
@@ -36,20 +58,42 @@ async function getCharactersFromSheet() {
 }
 
 io.on('connection', (socket) => {
-    socket.on('register-device', (type) => {
-        if (type === 'tv') {
-            socket.join('tv-room');
-        } else {
-            const role = Object.keys(players).length < 2 ? 
-                         (Object.values(players).includes('JUGADOR 1') ? 'JUGADOR 2' : 'JUGADOR 1') : 'ESPECTADOR';
-            players[socket.id] = role;
-            socket.emit('assign-role', role);
+    socket.on('register-tv', () => {
+        socket.join('tv-room');
+        socket.emit('lobby-info', { lobbyCode, players: getLobbyPlayers(), readyToStart: getLobbyPlayers().length === 2 });
+    });
+
+    socket.on('join-lobby', (payload) => {
+        const code = payload?.code?.trim().toUpperCase();
+        const name = payload?.name?.trim().toUpperCase();
+
+        if (!code || code !== lobbyCode) {
+            socket.emit('join-error', 'CÓDIGO DE LOBBY INVÁLIDO');
+            return;
         }
+
+        if (!name) {
+            socket.emit('join-error', 'INGRESA TU NOMBRE');
+            return;
+        }
+
+        const takenRoles = Object.values(players).map((player) => player.role);
+        const role = takenRoles.length < 2
+            ? (takenRoles.includes('JUGADOR 1') ? 'JUGADOR 2' : 'JUGADOR 1')
+            : 'ESPECTADOR';
+
+        players[socket.id] = { role, name };
+        socket.emit('assign-role', { role, name, lobbyCode });
+        broadcastLobbyUpdate();
     });
 
     socket.on('start-game', async () => {
+        const lobbyPlayers = getLobbyPlayers();
+        if (lobbyPlayers.length < 2) return;
+
         const allChars = await getCharactersFromSheet();
         if (allChars.length < 16) return;
+        gameStarted = true;
 
         const shuffled = [...allChars].sort(() => 0.5 - Math.random());
         
@@ -68,12 +112,12 @@ io.on('connection', (socket) => {
 
         console.log(`> J1 ES ${identityP1.nombre} | J2 ES ${identityP2.nombre}`);
 
-        for (const [id, role] of Object.entries(players)) {
-            if (role === 'JUGADOR 1') {
+        for (const [id, player] of Object.entries(players)) {
+            if (player.role === 'JUGADOR 1') {
                 // J1 sabe quién es él (P1) y busca al rival en su tablero (p1Board)
                 io.to(id).emit('game-setup', { board: p1Board, secret: identityP1.nombre });
             }
-            if (role === 'JUGADOR 2') {
+            if (player.role === 'JUGADOR 2') {
                 // J2 sabe quién es él (P2) y busca al rival en su tablero (p2Board)
                 io.to(id).emit('game-setup', { board: p2Board, secret: identityP2.nombre });
             }
@@ -98,8 +142,16 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('request-reset', () => io.emit('reset-game'));
-    socket.on('disconnect', () => delete players[socket.id]);
+    socket.on('request-reset', () => {
+        gameStarted = false;
+        io.emit('reset-game');
+        broadcastLobbyUpdate();
+    });
+
+    socket.on('disconnect', () => {
+        delete players[socket.id];
+        broadcastLobbyUpdate();
+    });
 });
 
 server.listen(process.env.PORT || 3000, '0.0.0.0');

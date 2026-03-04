@@ -49,14 +49,28 @@
             </div>
         </header>
 
+        <section class="lobby-panel">
+            <div>
+                <p class="lobby-label">CÓDIGO DE LOBBY</p>
+                <h2 id="lobby-code" class="lobby-code">------</h2>
+                <p class="lobby-help">Ingresa este código en <strong>mobile.html</strong></p>
+                <button id="start-btn" class="start-btn" onclick="startGame()" disabled>START GAME</button>
+                <p id="lobby-status" class="lobby-status">Esperando 2 jugadores...</p>
+            </div>
+            <div>
+                <img id="lobby-qr" alt="QR del lobby" class="lobby-qr" />
+                <div id="player-list" class="player-list"></div>
+            </div>
+        </section>
+
         <div class="dual-screen">
             <div class="player-section" id="board-JUGADOR-1-parent">
-                <div class="player-header p1-header">JUGADOR 1</div>
+                <div class="player-header p1-header" id="header-j1">JUGADOR 1</div>
                 <div class="grid-terminal" id="board-JUGADOR-1"></div>
             </div>
 
             <div class="player-section" id="board-JUGADOR-2-parent">
-                <div class="player-header p2-header">JUGADOR 2</div>
+                <div class="player-header p2-header" id="header-j2">JUGADOR 2</div>
                 <div class="grid-terminal" id="board-JUGADOR-2"></div>
             </div>
         </div>
@@ -79,7 +93,41 @@
         window.addEventListener('resize', documentHeight);
         documentHeight();
 
-        socket.emit('register-device', 'tv');
+        socket.emit('register-tv');
+
+        socket.on('lobby-info', updateLobby);
+        socket.on('lobby-update', updateLobby);
+
+        function updateLobby(data) {
+            const codeEl = document.getElementById('lobby-code');
+            const statusEl = document.getElementById('lobby-status');
+            const playersEl = document.getElementById('player-list');
+            const startBtn = document.getElementById('start-btn');
+            const qrImg = document.getElementById('lobby-qr');
+
+            codeEl.textContent = data.lobbyCode;
+            const joinUrl = `${window.location.origin}/mobile.html?code=${encodeURIComponent(data.lobbyCode)}`;
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(joinUrl)}`;
+
+            const players = data.players || [];
+            playersEl.innerHTML = players.length
+                ? players.map((player) => `<div>${player.role}: ${player.name}</div>`).join('')
+                : '<div>SIN JUGADORES</div>';
+
+            statusEl.textContent = data.readyToStart
+                ? 'Todos conectados. Listo para iniciar.'
+                : 'Esperando 2 jugadores...';
+            startBtn.disabled = !data.readyToStart;
+
+            const p1 = players.find((player) => player.role === 'JUGADOR 1');
+            const p2 = players.find((player) => player.role === 'JUGADOR 2');
+            document.getElementById('header-j1').textContent = p1 ? `JUGADOR 1 · ${p1.name}` : 'JUGADOR 1';
+            document.getElementById('header-j2').textContent = p2 ? `JUGADOR 2 · ${p2.name}` : 'JUGADOR 2';
+        }
+
+        function startGame() {
+            socket.emit('start-game');
+        }
 
         socket.on('tv-setup', data => {
             renderBoard('JUGADOR-1', data.p1Board);

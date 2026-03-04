@@ -36,6 +36,34 @@ body {
     flex-shrink: 0; /* Evita que el header se aplaste */
 }
 
+
+.lobby-panel {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 10px;
+    align-items: center;
+}
+
+.lobby-label { margin: 0; font-size: 0.65rem; color: #8e9aa5; }
+.lobby-code { margin: 4px 0; font-size: 1.8rem; letter-spacing: 4px; color: var(--p1-color); }
+.lobby-help { margin: 0 0 8px; font-size: 0.7rem; color: #c3cbd3; }
+.lobby-status { margin: 8px 0 0; font-size: 0.7rem; color: #90a4b8; }
+.start-btn {
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-weight: bold;
+    background: var(--p2-color);
+    color: #111;
+    cursor: pointer;
+}
+.start-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.lobby-qr { width: 92px; height: 92px; border: 2px solid #fff2; border-radius: 8px; background: #fff; }
+.player-list { margin-top: 8px; font-size: 0.65rem; color: #d6dde4; text-align: right; }
+
 /* ÁREA DE JUEGO */
 .dual-screen { 
     display: flex; 
