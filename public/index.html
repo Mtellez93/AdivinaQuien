@@ -93,7 +93,9 @@
         window.addEventListener('resize', documentHeight);
         documentHeight();
 
-        socket.emit('register-tv');
+        socket.on('connect', () => {
+            socket.emit('register-tv');
+        });
 
         socket.on('lobby-info', updateLobby);
         socket.on('lobby-update', updateLobby);

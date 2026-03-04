@@ -11,6 +11,9 @@ const io = new Server(server);
 app.use(express.static(path.join(__dirname, 'public')));
 
 let players = {};
+let socketToPlayerId = {};
+const reconnectCleanupTimers = {};
+const RECONNECT_GRACE_MS = 2 * 60 * 1000;
 // Guardamos quién es quién realmente
 let playerIdentities = { "JUGADOR 1": "", "JUGADOR 2": "" };
 let gameStarted = false;
@@ -29,9 +32,41 @@ function getLobbyPlayers() {
         .map((player) => ({ role: player.role, name: player.name }));
 }
 
+function getConnectedLobbyPlayers() {
+    return Object.values(players)
+        .filter((player) => player.role !== 'ESPECTADOR' && player.socketId)
+        .sort((a, b) => a.role.localeCompare(b.role));
+}
+
+function attachSocketToPlayer(playerId, socketId) {
+    const player = players[playerId];
+    if (!player) return;
+
+    if (player.socketId && player.socketId !== socketId) {
+        delete socketToPlayerId[player.socketId];
+    }
+
+    player.socketId = socketId;
+    clearTimeout(reconnectCleanupTimers[playerId]);
+    delete reconnectCleanupTimers[playerId];
+    socketToPlayerId[socketId] = playerId;
+}
+
+function scheduleDisconnectedPlayerCleanup(playerId) {
+    clearTimeout(reconnectCleanupTimers[playerId]);
+    reconnectCleanupTimers[playerId] = setTimeout(() => {
+        const player = players[playerId];
+        if (player && !player.socketId) {
+            delete players[playerId];
+            broadcastLobbyUpdate();
+        }
+        delete reconnectCleanupTimers[playerId];
+    }, RECONNECT_GRACE_MS);
+}
+
 function broadcastLobbyUpdate() {
     const lobbyPlayers = getLobbyPlayers();
-    const readyToStart = lobbyPlayers.length === 2;
+    const readyToStart = getConnectedLobbyPlayers().length === 2;
     io.to('tv-room').emit('lobby-update', { players: lobbyPlayers, readyToStart, lobbyCode });
     io.emit('waiting-room-update', { players: lobbyPlayers, readyToStart, gameStarted });
 }
@@ -66,6 +101,7 @@ io.on('connection', (socket) => {
     socket.on('join-lobby', (payload) => {
         const code = payload?.code?.trim().toUpperCase();
         const name = payload?.name?.trim().toUpperCase();
+        const incomingPlayerId = payload?.playerId?.trim();
 
         if (!code || code !== lobbyCode) {
             socket.emit('join-error', 'CÓDIGO DE LOBBY INVÁLIDO');
@@ -77,18 +113,38 @@ io.on('connection', (socket) => {
             return;
         }
 
-        const takenRoles = Object.values(players).map((player) => player.role);
-        const role = takenRoles.length < 2
-            ? (takenRoles.includes('JUGADOR 1') ? 'JUGADOR 2' : 'JUGADOR 1')
-            : 'ESPECTADOR';
+        let playerId = incomingPlayerId;
+        let existingPlayer = incomingPlayerId ? players[incomingPlayerId] : null;
 
-        players[socket.id] = { role, name };
-        socket.emit('assign-role', { role, name, lobbyCode });
+        if (existingPlayer && existingPlayer.name !== name) {
+            existingPlayer = null;
+            playerId = null;
+        }
+
+        if (!existingPlayer) {
+            playerId = `p_${Math.random().toString(36).slice(2, 12)}`;
+            const takenRoles = Object.values(players)
+                .filter((player) => player.role !== 'ESPECTADOR')
+                .map((player) => player.role);
+
+            const role = takenRoles.length < 2
+                ? (takenRoles.includes('JUGADOR 1') ? 'JUGADOR 2' : 'JUGADOR 1')
+                : 'ESPECTADOR';
+
+            players[playerId] = { playerId, role, name, socketId: null };
+        } else {
+            existingPlayer.name = name;
+        }
+
+        attachSocketToPlayer(playerId, socket.id);
+
+        const player = players[playerId];
+        socket.emit('assign-role', { role: player.role, name: player.name, lobbyCode, playerId });
         broadcastLobbyUpdate();
     });
 
     socket.on('start-game', async () => {
-        const lobbyPlayers = getLobbyPlayers();
+        const lobbyPlayers = getConnectedLobbyPlayers();
         if (lobbyPlayers.length < 2) return;
 
         const allChars = await getCharactersFromSheet();
@@ -112,14 +168,16 @@ io.on('connection', (socket) => {
 
         console.log(`> J1 ES ${identityP1.nombre} | J2 ES ${identityP2.nombre}`);
 
-        for (const [id, player] of Object.entries(players)) {
+        for (const player of Object.values(players)) {
+            if (!player.socketId) continue;
+
             if (player.role === 'JUGADOR 1') {
                 // J1 sabe quién es él (P1) y busca al rival en su tablero (p1Board)
-                io.to(id).emit('game-setup', { board: p1Board, secret: identityP1.nombre });
+                io.to(player.socketId).emit('game-setup', { board: p1Board, secret: identityP1.nombre });
             }
             if (player.role === 'JUGADOR 2') {
                 // J2 sabe quién es él (P2) y busca al rival en su tablero (p2Board)
-                io.to(id).emit('game-setup', { board: p2Board, secret: identityP2.nombre });
+                io.to(player.socketId).emit('game-setup', { board: p2Board, secret: identityP2.nombre });
             }
         }
 
@@ -149,7 +207,16 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        delete players[socket.id];
+        const playerId = socketToPlayerId[socket.id];
+        if (!playerId) return;
+
+        delete socketToPlayerId[socket.id];
+
+        if (players[playerId] && players[playerId].socketId === socket.id) {
+            players[playerId].socketId = null;
+            scheduleDisconnectedPlayerCleanup(playerId);
+        }
+
         broadcastLobbyUpdate();
     });
 });
