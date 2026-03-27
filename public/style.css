@@ -51,6 +51,11 @@ body {
 .lobby-code { margin: 4px 0; font-size: 1.8rem; letter-spacing: 4px; color: var(--p1-color); }
 .lobby-help { margin: 0 0 8px; font-size: 0.7rem; color: #c3cbd3; }
 .lobby-status { margin: 8px 0 0; font-size: 0.7rem; color: #90a4b8; }
+.lobby-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
 .start-btn {
     border: none;
     padding: 10px 16px;
@@ -61,6 +66,10 @@ body {
     cursor: pointer;
 }
 .start-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.new-lobby-btn {
+    background: #263646;
+    color: #d7e7f5;
+}
 .lobby-qr { width: 92px; height: 92px; border: 2px solid #fff2; border-radius: 8px; background: #fff; }
 .player-list { margin-top: 8px; font-size: 0.65rem; color: #d6dde4; text-align: right; }
 
