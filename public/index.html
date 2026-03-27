@@ -40,21 +40,11 @@
 </head>
 <body class="terminal-body">
     <div class="scanline"></div>
-
     <div class="main-wrapper">
-        <header class="compact-header">
-            <div class="brand">
-                <span style="color: var(--p1-color); font-size: 0.8rem; letter-spacing: 2px;">
-                    > SYSTEM_STATUS: <span class="blink">ACTIVE_LINK</span>
-                </span>
-            </div>
-        </header>
-
         <section class="lobby-panel">
             <div>
-                <p class="lobby-label">CÓDIGO DE LOBBY</p>
+                <p class="lobby-label">LOBBY:</p>
                 <h2 id="lobby-code" class="lobby-code">------</h2>
-                <p class="lobby-help">Ingresa este código en <strong>mobile.html</strong></p>
                 <div class="lobby-actions">
                     <button id="start-btn" class="start-btn" onclick="startGame()" disabled>START GAME</button>
                     <button id="new-lobby-btn" class="start-btn new-lobby-btn" onclick="createNewLobby()">NEW LOBBY</button>
