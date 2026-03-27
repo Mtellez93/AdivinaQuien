@@ -24,7 +24,7 @@ function createLobbyCode(length = 6) {
     return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
-const lobbyCode = createLobbyCode();
+let lobbyCode = createLobbyCode();
 
 function getLobbyPlayers() {
     return Object.values(players)
@@ -37,6 +37,19 @@ function getConnectedLobbyPlayers() {
     return Object.values(players)
         .filter((player) => player.role !== 'ESPECTADOR' && player.socketId)
         .sort((a, b) => a.role.localeCompare(b.role));
+}
+
+function resetLobbyState() {
+    gameStarted = false;
+    currentGameState = null;
+    players = {};
+    socketToPlayerId = {};
+    playerIdentities = { "JUGADOR 1": "", "JUGADOR 2": "" };
+
+    Object.keys(reconnectCleanupTimers).forEach((playerId) => {
+        clearTimeout(reconnectCleanupTimers[playerId]);
+        delete reconnectCleanupTimers[playerId];
+    });
 }
 
 function attachSocketToPlayer(playerId, socketId) {
@@ -108,6 +121,13 @@ io.on('connection', (socket) => {
                 socket.emit('visual-discard', discard);
             }
         }
+    });
+
+    socket.on('create-new-lobby', () => {
+        resetLobbyState();
+        lobbyCode = createLobbyCode();
+        io.emit('reset-game');
+        broadcastLobbyUpdate();
     });
 
     socket.on('join-lobby', (payload) => {

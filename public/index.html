@@ -55,7 +55,10 @@
                 <p class="lobby-label">CÓDIGO DE LOBBY</p>
                 <h2 id="lobby-code" class="lobby-code">------</h2>
                 <p class="lobby-help">Ingresa este código en <strong>mobile.html</strong></p>
-                <button id="start-btn" class="start-btn" onclick="startGame()" disabled>START GAME</button>
+                <div class="lobby-actions">
+                    <button id="start-btn" class="start-btn" onclick="startGame()" disabled>START GAME</button>
+                    <button id="new-lobby-btn" class="start-btn new-lobby-btn" onclick="createNewLobby()">NEW LOBBY</button>
+                </div>
                 <p id="lobby-status" class="lobby-status">Esperando 2 jugadores...</p>
             </div>
             <div>
@@ -131,6 +134,12 @@
         function startGame() {
             document.querySelector('.lobby-panel').style.display = 'none';
             socket.emit('start-game');
+        }
+
+        function createNewLobby() {
+            const shouldCreate = confirm('¿Crear un lobby nuevo y abandonar el actual?');
+            if (!shouldCreate) return;
+            socket.emit('create-new-lobby');
         }
 
         socket.on('tv-setup', data => {
