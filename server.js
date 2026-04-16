@@ -39,6 +39,12 @@ function getConnectedLobbyPlayers() {
         .sort((a, b) => a.role.localeCompare(b.role));
 }
 
+function getConnectedPlayerSocketIds() {
+    return getConnectedLobbyPlayers()
+        .map((player) => player.socketId)
+        .filter(Boolean);
+}
+
 function resetLobbyState() {
     gameStarted = false;
     currentGameState = null;
@@ -264,9 +270,14 @@ io.on('connection', (socket) => {
     });
 
     socket.on('request-reset', () => {
+        const connectedPlayerSocketIds = getConnectedPlayerSocketIds();
         gameStarted = false;
         currentGameState = null;
         io.emit('reset-game');
+        resetLobbyState();
+        connectedPlayerSocketIds.forEach((socketId) => {
+            io.sockets.sockets.get(socketId)?.disconnect(true);
+        });
         broadcastLobbyUpdate();
     });
 
